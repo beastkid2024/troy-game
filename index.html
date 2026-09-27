@@ -148,6 +148,7 @@ table.rep th{background:var(--bronze);color:#2c1f0e}
 .hero-portrait .ic svg{width:48px;height:48px;color:var(--gold)}
 .center{text-align:center}
 .small{font-size:12px;color:var(--ink-l);font-family:Arial,sans-serif}
+#saveind{font-size:11px;color:var(--bronze);font-family:Arial,sans-serif;white-space:nowrap;align-self:center}
 hr.bronze{border:none;border-top:2px solid var(--bronze);margin:10px 0}
 </style>
 </head>
@@ -156,6 +157,7 @@ hr.bronze{border:none;border-top:2px solid var(--bronze);margin:10px 0}
   <header id="resbar">
     <div class="title">TROY</div>
     <div id="resgrid"></div>
+    <div id="saveind" title="Your progress saves automatically on this device">● saving…</div>
   </header>
   <div id="hintbar"><span class="pulse">❖</span><span id="hinttext"></span></div>
   <main id="views">
@@ -342,6 +344,13 @@ function save(){
   if(!S) return;
   S.lastSeen = Date.now();
   try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+  const el = document.getElementById('saveind');
+  if(el){
+    const t = new Date(S.lastSeen);
+    let h = t.getHours(), ap = h>=12?'PM':'AM';
+    h = h%12 || 12;
+    el.textContent = '\u2713 Saved ' + h + ':' + String(t.getMinutes()).padStart(2,'0') + ' ' + ap;
+  }
 }
 function load(){
   try{
