@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TROY — Rise of the Bronze City</title>
+<style>
+/* ============ TROY v1 — bronze / marble / deep-red theme ============ */
+:root{
+  --bronze:#b08d57; --bronze-d:#8a6d3f; --bronze-l:#d9bd85;
+  --marble:#f6f1e3; --marble-d:#e9dfc6; --marble-dd:#d9cba6;
+  --red:#7a1f1f; --red-d:#571111; --red-l:#a83a3a;
+  --ink:#2c2317; --ink-l:#5a4a33; --gold:#d9a441;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:#14100a;font-family:Georgia,'Times New Roman',serif;color:var(--ink);
+  display:flex;justify-content:center;min-height:100vh}
+#app{width:100%;max-width:520px;min-height:100vh;background:var(--marble);
+  background-image:repeating-linear-gradient(45deg,rgba(176,141,87,.04) 0 2px,transparent 2px 6px);
+  display:flex;flex-direction:column;position:relative;box-shadow:0 0 40px #000}
+/* ---------- header resource bar ---------- */
+#resbar{background:linear-gradient(180deg,#3a2a18,#241a0e);color:var(--marble);
+  padding:8px 6px 6px;border-bottom:3px solid var(--bronze);position:sticky;top:0;z-index:30}
+#resbar .title{text-align:center;font-size:15px;letter-spacing:4px;color:var(--bronze-l);
+  font-weight:bold;margin-bottom:6px;text-shadow:0 1px 0 #000}
+#resgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.res-chip{background:rgba(246,241,227,.08);border:1px solid var(--bronze-d);border-radius:8px;
+  padding:4px 6px;text-align:center;min-width:0}
+.res-chip .r-top{display:flex;align-items:center;justify-content:center;gap:4px;
+  font-size:14px;font-weight:bold;color:#fff;white-space:nowrap}
+.res-chip .r-rate{font-size:10px;color:var(--bronze-l);font-family:Arial,sans-serif}
+.ic{display:inline-flex;vertical-align:middle}
+.ic svg{width:1.15em;height:1.15em;vertical-align:-0.2em}
+/* ---------- hint bar ---------- */
+#hintbar{background:linear-gradient(90deg,var(--red),var(--red-d));color:#ffe9c9;
+  font-size:13px;padding:7px 12px;display:flex;gap:8px;align-items:center;z-index:29}
+#hintbar .pulse{animation:pulse 1.6s infinite;font-size:15px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* ---------- views ---------- */
+#views{flex:1;padding:10px 10px 86px;overflow-y:auto}
+.view{display:none}
+.view.active{display:block;animation:fadein .25s}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2.sec{font-size:16px;letter-spacing:2px;color:var(--red-d);border-bottom:2px solid var(--bronze);
+  padding-bottom:4px;margin:12px 2px 8px;text-transform:uppercase}
+/* ---------- cards & buttons ---------- */
+.card{background:linear-gradient(180deg,#fffdf6,var(--marble-d));border:2px solid var(--bronze);
+  border-radius:10px;padding:10px;margin-bottom:10px;box-shadow:0 2px 6px rgba(60,40,10,.25)}
+.btn{display:inline-block;background:linear-gradient(180deg,var(--bronze-l),var(--bronze));
+  border:2px solid var(--bronze-d);border-radius:8px;color:#2c1f0e;font-weight:bold;
+  font-family:Georgia,serif;font-size:14px;padding:10px 16px;cursor:pointer;min-height:44px;
+  text-shadow:0 1px 0 rgba(255,255,255,.4);box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.red{background:linear-gradient(180deg,var(--red-l),var(--red));border-color:var(--red-d);color:#ffe9c9;text-shadow:0 1px 0 #000}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.small{font-size:12px;padding:6px 10px;min-height:36px}
+.lvl-pips{letter-spacing:2px;font-size:13px;color:var(--bronze-d)}
+.lvl-pips .on{color:var(--gold);text-shadow:0 0 2px var(--bronze-d)}
+.costline{font-size:12px;color:var(--ink-l);font-family:Arial,sans-serif;margin:4px 0}
+.prog{height:10px;background:#cbbd97;border-radius:6px;overflow:hidden;margin-top:6px;border:1px solid var(--bronze-d)}
+.prog > div{height:100%;background:linear-gradient(90deg,var(--bronze),var(--gold));width:0%}
+.prog.red > div{background:linear-gradient(90deg,var(--red-l),var(--red))}
+.bld-head{display:flex;align-items:center;gap:10px}
+.bld-icon{width:46px;height:46px;flex:0 0 46px;background:radial-gradient(circle at 35% 30%,#fff8e6,var(--marble-d));
+  border:2px solid var(--bronze);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.bld-icon .ic svg{width:28px;height:28px}
+.bld-name{font-size:16px;font-weight:bold;color:var(--red-d)}
+.bld-desc{font-size:12px;color:var(--ink-l);font-style:italic}
+/* ---------- tab bar ---------- */
+#tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;
+  display:grid;grid-template-columns:repeat(5,1fr);background:linear-gradient(180deg,#3a2a18,#1d1409);
+  border-top:3px solid var(--bronze);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+.tabbtn{background:none;border:none;color:#cbbd97;font-family:Georgia,serif;font-size:11px;
+  padding:8px 2px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:60px}
+.tabbtn .ic svg{width:24px;height:24px}
+.tabbtn.active{color:var(--gold)}
+.tabbtn .dot{width:7px;height:7px;border-radius:50%;background:var(--red-l);display:none}
+.tabbtn .dot.show{display:block}
+/* ---------- map ---------- */
+#mapwrap{position:relative;width:100%;height:480px;border:3px solid var(--bronze-d);border-radius:12px;
+  overflow:hidden;background:#e6d9b8;box-shadow:inset 0 0 40px rgba(122,31,31,.15)}
+#mapbg{position:absolute;inset:0;width:100%;height:100%}
+.mnode{position:absolute;transform:translate(-50%,-50%);width:64px;display:flex;flex-direction:column;
+  align-items:center;cursor:pointer;background:none;border:none;font-family:Georgia,serif;padding:0}
+.mnode .mn-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:3px solid var(--bronze-d);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.mnode .mn-ic .ic svg{width:24px;height:24px}
+.mnode .mn-lb{font-size:9.5px;color:#fff;background:rgba(20,12,6,.78);border-radius:6px;
+  padding:2px 5px;margin-top:3px;text-align:center;line-height:1.15;max-width:76px}
+.mnode .mn-tier{position:absolute;top:-4px;right:6px;background:var(--red);color:#ffe9c9;font-size:10px;
+  font-weight:bold;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+  border:1px solid #ffe9c9;font-family:Arial,sans-serif}
+.mnode.gather .mn-ic{background:radial-gradient(circle at 35% 30%,#fdf6df,#c9a86a)}
+.mnode.camp .mn-ic{background:radial-gradient(circle at 35% 30%,#e8a0a0,#7a1f1f)}
+.mnode.camp .mn-ic .ic{color:#ffe9c9}
+.mnode.city .mn-ic{background:radial-gradient(circle at 35% 30%,#c9b586,#6b5326);border-color:#3a2c12}
+.mnode.city .mn-ic .ic{color:#ffe9c9}
+.mnode.boss .mn-ic{background:radial-gradient(circle at 35% 30%,#5c1414,#1d0808);border-color:var(--gold);animation:pulse 2s infinite}
+.mnode.boss .mn-ic .ic{color:var(--gold)}
+.mnode.ruin .mn-ic{background:radial-gradient(circle at 35% 30%,#d8cfae,#8a7a55)}
+.mnode.done{opacity:.45;filter:grayscale(.8)}
+.mnode.done .mn-tier{display:none}
+#home-marker{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+#home-marker .troy{font-size:13px;font-weight:bold;letter-spacing:3px;color:var(--red-d);
+  text-shadow:0 1px 0 #fff,0 0 6px #fff}
+.marchbar{background:#2c1f0e;border:1px solid var(--bronze);border-radius:8px;color:#ffe9c9;
+  font-size:12px;font-family:Arial,sans-serif;padding:8px 10px;margin-bottom:8px}
+/* ---------- modal ---------- */
+#modal-root{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100;
+  background:rgba(10,6,3,.72);padding:18px}
+#modal-root.open{display:flex}
+#modal{background:linear-gradient(180deg,#fffdf6,var(--marble-d));border:3px solid var(--bronze);
+  border-radius:14px;max-width:460px;width:100%;max-height:86vh;overflow-y:auto;padding:18px;
+  box-shadow:0 8px 40px #000;animation:fadein .25s}
+#modal h3{margin:0 0 8px;color:var(--red-d);letter-spacing:1px;font-size:18px}
+#modal .flavor{font-style:italic;color:var(--ink-l);font-size:13px;margin-bottom:10px}
+/* ---------- title screen ---------- */
+#titlescreen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:#160d06;overflow:hidden}
+#titlescreen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#titlescreen .ts-fallback{position:absolute;top:14%;width:100%;text-align:center;font-family:Georgia,serif;
+  font-size:72px;letter-spacing:8px;color:#c9973f;text-shadow:0 3px 0 #5b3a12,0 6px 18px #000}
+#titlescreen .ts-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,6,2,.88) 0%,rgba(12,6,2,0) 50%)}
+#titlescreen .ts-content{position:absolute;bottom:7%;left:0;right:0;text-align:center}
+#titlescreen .ts-sub{color:#e8d9b8;font-family:Georgia,serif;font-style:italic;font-size:15px;margin-bottom:14px;text-shadow:0 2px 6px #000}
+.ts-enter{font-size:20px;padding:14px 46px;box-shadow:0 4px 18px rgba(0,0,0,.6)}
+/* ---------- toast ---------- */
+#toast-root{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);width:100%;max-width:500px;
+  z-index:120;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;padding:0 14px}
+.toast{background:#241a0e;color:#ffe9c9;border:2px solid var(--bronze);border-radius:10px;
+  padding:9px 14px;font-size:13px;font-family:Arial,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);
+  animation:fadein .25s;text-align:center;max-width:100%}
+/* ---------- misc ---------- */
+.stepper{display:flex;align-items:center;gap:10px;margin:8px 0}
+.stepper button{width:44px;height:44px;font-size:20px;border-radius:10px;border:2px solid var(--bronze-d);
+  background:linear-gradient(180deg,var(--bronze-l),var(--bronze));font-weight:bold;cursor:pointer;color:#2c1f0e}
+.stepper .val{font-size:18px;font-weight:bold;min-width:52px;text-align:center;font-family:Arial,sans-serif}
+.qrow{display:flex;gap:10px;align-items:flex-start}
+.qnum{flex:0 0 30px;height:30px;border-radius:50%;background:var(--bronze);color:#fff;font-weight:bold;
+  display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;border:2px solid var(--bronze-d)}
+.qrow.done .qnum{background:#6a8f3c;border-color:#4a6a28}
+.qrow.locked{opacity:.5}
+.xpbar{height:12px;background:#cbbd97;border:1px solid var(--bronze-d);border-radius:7px;overflow:hidden;margin:6px 0}
+.xpbar > div{height:100%;background:linear-gradient(90deg,#6a8f3c,#9dc65c)}
+.ability{border-left:4px solid var(--marble-dd);padding:6px 10px;margin:6px 0;background:rgba(255,255,255,.4);border-radius:0 8px 8px 0}
+.ability.unlocked{border-left-color:var(--gold)}
+.ability .an{font-weight:bold;color:var(--red-d)}
+.ability .lock{color:var(--ink-l);font-size:12px;font-style:italic}
+table.rep{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;margin:8px 0}
+table.rep td,table.rep th{border:1px solid var(--bronze-d);padding:6px 8px;text-align:left}
+table.rep th{background:var(--bronze);color:#2c1f0e}
+.winbanner{text-align:center;font-size:22px;font-weight:bold;letter-spacing:2px;margin:6px 0}
+.streak{display:flex;justify-content:center;gap:6px;margin:8px 0}
+/* ---------- battle replay viewer ---------- */
+.wr-field{display:grid;grid-template-columns:1fr 46px 1fr;gap:6px;align-items:stretch;margin:8px 0}
+.wr-side{background:rgba(44,31,14,.06);border:2px solid var(--bronze-d);border-radius:10px;padding:8px 6px}
+.wr-side.atk{border-color:var(--gold)}
+.wr-name{font-size:12px;font-weight:bold;text-align:center;color:var(--red-d);margin-bottom:6px;
+  font-family:Arial,sans-serif;min-height:30px;display:flex;align-items:center;justify-content:center}
+.wr-row{display:flex;align-items:center;gap:6px;margin:6px 0;font-family:Arial,sans-serif}
+.wr-row .ic svg{width:22px;height:22px;flex:0 0 22px}
+.wr-count{font-weight:bold;font-size:14px;min-width:32px;text-align:right}
+.wr-hp{flex:1;height:10px;background:#cbbd97;border:1px solid var(--bronze-d);border-radius:6px;overflow:hidden}
+.wr-hp>div{height:100%;width:100%;background:linear-gradient(90deg,#a83a3a,#e07a5f);transition:width .3s}
+.wr-side.def .wr-hp>div{background:linear-gradient(90deg,#b8860b,#e8c35a)}
+.wr-mid{display:flex;align-items:center;justify-content:center}
+#wr-clash{font-size:30px;line-height:1}
+#wr-clash.hit{animation:wrclash .45s}
+@keyframes wrclash{0%{transform:scale(1) rotate(0)}40%{transform:scale(1.6) rotate(-12deg)}100%{transform:scale(1) rotate(0)}}
+.wr-side.flash{animation:wrflash .5s}
+@keyframes wrflash{0%{background:rgba(168,58,58,.55)}100%{background:rgba(44,31,14,.06)}}
+.wr-controls{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.wr-controls .btn{min-width:70px}
+#wr-result{text-align:center;margin:8px 0;font-family:Arial,sans-serif}
+.sdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--bronze-d);display:flex;
+  align-items:center;justify-content:center;font-family:Arial,sans-serif;font-size:12px;
+  font-weight:bold;color:var(--ink-l);background:var(--marble-d)}
+.sdot.on{background:radial-gradient(circle at 35% 30%,var(--gold),var(--bronze-d));color:#2c1f0e}
+.hero-portrait{width:84px;height:84px;border-radius:50%;border:3px solid var(--gold);
+  background:radial-gradient(circle at 35% 30%,#a83a3a,#571111);display:flex;align-items:center;
+  justify-content:center;margin:0 auto 8px}
+.hero-portrait .ic svg{width:48px;height:48px;color:var(--gold)}
+.hrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e0d0a8}
+.hrow:last-child{border-bottom:none}
+.hport{width:44px;height:44px;border-radius:50%;border:2px solid var(--bronze);flex:none;
+  background:radial-gradient(circle at 35% 30%,#8a6a3a,#3a2a12);display:flex;align-items:center;justify-content:center}
+.hport .ic svg{width:26px;height:26px;color:var(--gold)}
+.rgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0}
+.relic{text-align:center;opacity:.55}
+.relic.got{opacity:1}
+.relic-ic{width:40px;height:40px;margin:0 auto 2px;border-radius:10px;border:2px solid var(--marble-dd);
+  background:linear-gradient(180deg,#fffdf6,var(--marble-d));display:flex;align-items:center;justify-content:center;color:var(--bronze-d)}
+.relic.got .relic-ic{border-color:var(--gold);color:#8a5a1a;box-shadow:0 0 8px rgba(201,151,63,.5)}
+.relic-ic .ic svg{width:24px;height:24px}
+.relic-nm{font-size:9px;color:var(--ink-l);font-family:Arial,sans-serif;line-height:1.2}
+.center{text-align:center}
+.small{font-size:12px;color:var(--ink-l);font-family:Arial,sans-serif}
+#saveind{font-size:11px;color:var(--bronze);font-family:Arial,sans-serif;white-space:nowrap;align-self:center}
+hr.bronze{border:none;border-top:2px solid var(--bronze);margin:10px 0}
+/* ---------- achievements / chronicle / city skins ---------- */
+.ch-tl{max-height:360px;overflow-y:auto}
+.ch-day{font-size:12px;font-weight:bold;color:var(--red-d);letter-spacing:1px;margin:10px 0 4px;font-family:Arial,sans-serif}
+.ch-day:first-child{margin-top:0}
+.ch-row{display:flex;gap:8px;font-size:12px;font-family:Arial,sans-serif;color:var(--ink);padding:3px 0;border-bottom:1px dotted var(--marble-dd)}
+.ch-time{flex:0 0 62px;color:var(--ink-l)}
+.skinrow{display:flex;gap:8px}
+.skinbtn{flex:1;background:linear-gradient(180deg,#fffdf6,var(--marble-d));border:2px solid var(--bronze-d);
+  border-radius:10px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  gap:6px;font-family:Georgia,serif;min-height:44px}
+.skinbtn.active{border-color:var(--gold);box-shadow:0 0 10px rgba(201,151,63,.5)}
+.skinbtn:disabled{opacity:.55;cursor:default}
+.skinsw{width:44px;height:44px;border-radius:50%;border:2px solid var(--bronze-d)}
+.skinsw[data-sk="bronze"]{background:radial-gradient(circle at 35% 30%,#d9bd85,#8a6d3f)}
+.skinsw[data-sk="marble"]{background:radial-gradient(circle at 35% 30%,#ffffff,#c9b98f);border-color:#c9a227}
+.skinsw[data-sk="warred"]{background:radial-gradient(circle at 35% 30%,#a83a3a,#1d0808);border-color:#a83a3a}
+.skinnm{font-weight:bold;font-size:13px;color:var(--red-d)}
+/* Marble skin: white marble + gold chrome (danger reds kept for semantics) */
+body[data-skin="marble"]{--ink:#3a3226;--ink-l:#6b5f45}
+body[data-skin="marble"] #app{background:#fdfbf4;background-image:repeating-linear-gradient(45deg,rgba(201,162,39,.05) 0 2px,transparent 2px 6px)}
+body[data-skin="marble"] #resbar{background:linear-gradient(180deg,#fbf4dd,#e9d9ae);border-bottom-color:#c9a227}
+body[data-skin="marble"] #resbar .title{color:#8a6d1f;text-shadow:0 1px 0 #fff}
+body[data-skin="marble"] .res-chip{background:rgba(138,109,31,.07);border-color:#c9a227}
+body[data-skin="marble"] .res-chip .r-top{color:#2c1f0e}
+body[data-skin="marble"] .res-chip .r-rate{color:#6b5f45}
+body[data-skin="marble"] #saveind{color:#8a6d1f}
+body[data-skin="marble"] #hintbar{background:linear-gradient(90deg,#c9a227,#a07f1a);color:#2c1f0e}
+body[data-skin="marble"] #tabbar{background:linear-gradient(180deg,#fbf4dd,#e5d3a3);border-top-color:#c9a227}
+body[data-skin="marble"] .tabbtn{color:#6b5f45}
+body[data-skin="marble"] .tabbtn.active{color:#8a6d1f}
+body[data-skin="marble"] .card{background:linear-gradient(180deg,#ffffff,#f7f1e0);border-color:#c9a227}
+body[data-skin="marble"] #modal{background:linear-gradient(180deg,#ffffff,#f7f1e0);border-color:#c9a227}
+body[data-skin="marble"] h2.sec{color:#6b5312;border-bottom-color:#c9a227}
+body[data-skin="marble"] .bld-name{color:#6b5312}
+body[data-skin="marble"] #mapwrap{border-color:#c9a227}
+body[data-skin="marble"] hr.bronze{border-top-color:#c9a227}
+body[data-skin="marble"] .skinnm{color:#6b5312}
+body[data-skin="marble"] .ch-day{color:#6b5312}
+body[data-skin="marble"] .qnum{background:#c9a227;border-color:#a07f1a}
+/* War-Red skin: dark red + black iron chrome (danger reds kept for semantics) */
+body[data-skin="warred"]{--ink:#efdfc9;--ink-l:#c49a78}
+body[data-skin="warred"] #app{background:#200f0c;background-image:repeating-linear-gradient(45deg,rgba(168,58,58,.06) 0 2px,transparent 2px 6px)}
+body[data-skin="warred"] #resbar{background:linear-gradient(180deg,#3a1214,#1d0809);border-bottom-color:#a83a3a}
+body[data-skin="warred"] #resbar .title{color:#e07a5f}
+body[data-skin="warred"] .res-chip{background:rgba(224,122,95,.08);border-color:#a83a3a}
+body[data-skin="warred"] .res-chip .r-top{color:#ffe9c9}
+body[data-skin="warred"] .res-chip .r-rate{color:#c49a78}
+body[data-skin="warred"] #saveind{color:#c49a78}
+body[data-skin="warred"] #hintbar{background:linear-gradient(90deg,#141414,#2c0a0a);color:#ffe9c9}
+body[data-skin="warred"] #tabbar{background:linear-gradient(180deg,#2c0f10,#120607);border-top-color:#a83a3a}
+body[data-skin="warred"] .tabbtn{color:#c49a78}
+body[data-skin="warred"] .tabbtn.active{color:#e07a5f}
+body[data-skin="warred"] .card{background:linear-gradient(180deg,#2c1611,#1d0d0a);border-color:#a83a3a}
+body[data-skin="warred"] #modal{background:linear-gradient(180deg,#2c1611,#1d0d0a);border-color:#a83a3a}
+body[data-skin="warred"] h2.sec{color:#e07a5f;border-bottom-color:#a83a3a}
+body[data-skin="warred"] .bld-name{color:#e8a37f}
+body[data-skin="warred"] .bld-desc{color:#c49a78}
+body[data-skin="warred"] .costline{color:#c49a78}
+body[data-skin="warred"] .prog{background:#3a1c14}
+body[data-skin="warred"] .xpbar{background:#3a1c14}
+body[data-skin="warred"] .ability{background:rgba(0,0,0,.35)}
+body[data-skin="warred"] .ability .an{color:#e8a37f}
+body[data-skin="warred"] .ability .lock{color:#c49a78}
+body[data-skin="warred"] #mapwrap{border-color:#a83a3a}
+body[data-skin="warred"] hr.bronze{border-top-color:#a83a3a}
+body[data-skin="warred"] .skinnm{color:#e8a37f}
+body[data-skin="warred"] .ch-day{color:#e07a5f}
+body[data-skin="warred"] .ch-row{border-bottom-color:#4a2018}
+body[data-skin="warred"] .qnum{background:#a83a3a;border-color:#571111}
+body[data-skin="warred"] .qrow.done .qnum{background:#6a8f3c;border-color:#4a6a28}
+body[data-skin="warred"] .sdot{background:#3a1c14;border-color:#a83a3a;color:#c49a78}
+body[data-skin="warred"] .hrow{border-bottom-color:#4a2018}
+body[data-skin="warred"] .marchbar{background:#2c0f10;border-color:#a83a3a}
+body[data-skin="warred"] .skinbtn{background:linear-gradient(180deg,#2c1611,#1d0d0a);border-color:#a83a3a}
+body[data-skin="warred"] .relic-ic{background:linear-gradient(180deg,#2c1611,#1d0d0a)}
+body[data-skin="warred"] .relic-nm{color:#c49a78}
+body[data-skin="warred"] table.rep td,body[data-skin="warred"] table.rep th{border-color:#a83a3a}
+body[data-skin="warred"] table.rep th{background:#a83a3a;color:#ffe9c9}
+body[data-skin="warred"] .wr-side{background:rgba(168,58,58,.08);border-color:#a83a3a}
+body[data-skin="warred"] .wr-name{color:#e8a37f}
+body[data-skin="warred"] .wr-hp{background:#3a1c14}
+body[data-skin="warred"] .lvl-pips{color:#a83a3a}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="resbar">
+    <div class="title">TROY</div>
+    <div id="resgrid"></div>
+    <div id="saveind" title="Your progress saves automatically on this device">● saving…</div>
+  </header>
+  <div id="hintbar"><span class="pulse">❖</span><span id="hinttext"></span></div>
+  <main id="views">
+    <section id="view-city" class="view"></section>
+    <section id="view-map" class="view"></section>
+    <section id="view-army" class="view"></section>
+    <section id="view-hero" class="view"></section>
+    <section id="view-quests" class="view"></section>
+  </main>
+  <nav id="tabbar"></nav>
+  <div id="modal-root"><div id="modal"></div></div>
+  <div id="titlescreen">
+    <div class="ts-fallback">TROY</div>
+    <img src="troy-cover.webp" alt="" onerror="this.style.display='none'">
+    <div class="ts-shade"></div>
+    <div class="ts-content">
+      <div class="ts-sub">Build your city. Raise your army. Take the throne.</div>
+      <button class="btn ts-enter" onclick="Game.enterTitle()">⚔ Enter Troy</button>
+    </div>
+  </div>
+  <div id="toast-root"></div>
+</div>
+<script>
+'use strict';
+/* =====================================================================
+   TROY v1 — single-player bronze-age city builder / strategy
+   All state in `S`. Timers stored as absolute timestamps (ms) so
+   offline progress works. Autosaves to localStorage key 'troySaveV1'.
+   ===================================================================== */
+/* ---------------- icons (inline SVG, no external assets) ---------------- */
+const ICONS = {
+  wheat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8"/><path d="M12 8C12 5 10 3 7 3c0 3 2 5 5 5z"/><path d="M12 8c0-3 2-5 5-5 0 3-2 5-5 5z"/><path d="M12 14c-3 0-5-2-5-5 3 0 5 2 5 5z"/><path d="M12 14c3 0 5-2 5-5-3 0-5 2-5 5z"/></svg>',
+  tree:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l6 9H6z"/><path d="M12 9l5 7H7z"/><path d="M12 16v5"/></svg>',
+  mountain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20l6-11 4 7 3-4 5 8z"/></svg>',
+  coin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>',
+  palace:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-6 9 6"/><path d="M5 9v10M9.5 9v10M14.5 9v10M19 9v10"/><path d="M3 21h18"/></svg>',
+  barracks:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20L12 4l8 16"/><path d="M8 20l4-8 4 8"/></svg>',
+  walls:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V9l2-2v3h3V7h3v3h3V7h3v3h2V7l2 2v11"/><path d="M4 20h16"/></svg>',
+  farm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M6 21V10l6-5 6 5v11"/><path d="M10 21v-6h4v6"/></svg>',
+  spear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19L17 7"/><path d="M17 7l-2-2 4-2-2 4z"/></svg>',
+  bow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3c6 4 6 14 0 18"/><path d="M7 3v18"/><path d="M7 12h9"/><path d="M16 12l-3-2M16 12l-3 2"/></svg>',
+  horse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 20v-4a6 6 0 0 1 12 0v4"/><path d="M6 16H4M20 16h-2"/></svg>',
+  hero:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4"/><path d="M5 12a7 7 0 0 1 14 0v3H5z"/><path d="M12 3c-1 2-1 3 0 4 1-1 1-2 0-4z"/></svg>',
+  scroll:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h11a3 3 0 0 1 3 3v11a2 2 0 0 1-4 0V7a1 1 0 0 0-1-1"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 4 0"/></svg>',
+  fire:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c2 4 6 6 6 11a6 6 0 0 1-12 0c0-2 1-4 2-5 .5 1.5 1.5 2 2.5 2C11 8 11 5 12 3z"/></svg>',
+  city:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V10l3-2v4h2V6l3-2 3 2v6h2V8l3 2v11"/><path d="M3 21h18"/></svg>',
+  skull:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="7"/><path d="M9 21v-3M15 21v-3"/><circle cx="9.5" cy="10" r="1" fill="currentColor"/><circle cx="14.5" cy="10" r="1" fill="currentColor"/></svg>',
+  ruin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16"/><path d="M6 20v-8l4-4 4 4v8"/><path d="M14 20v-5h4v5"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  sword:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6"/><path d="M14 4l6 6"/><path d="M4 20l3-3"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 13l5 5L20 7"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.7 5.8 6.3.8-4.6 4.3 1.2 6.1-5.6-3.2-5.6 3.2 1.2-6.1L3 9.6l6.3-.8z"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-5.5 10-5.5S22 12 22 12s-3.5 5.5-10 5.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  warhelm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 21v-7a6 6 0 0 1 12 0v7"/><path d="M12 8V3"/><path d="M12 3c2 1 3 2 3 5-1-2-2-3-3-3s-2 1-3 3c0-3 1-4 3-5z"/><path d="M4 21h16"/></svg>',
+  amphora:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6"/><path d="M10 3c0 4-4 5-4 10a6 6 0 0 0 12 0c0-5-4-6-4-10"/><path d="M12 19v3"/><path d="M8 13h8"/></svg>',
+  sickle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4C12 5 6 11 5 20"/><path d="M20 4c-1 5-4 9-8 11"/><path d="M5 20l3 2"/></svg>',
+  trowel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 15l6-6 4 4-6 6z"/><path d="M9 15l-5 5"/><path d="M15 9l5-5"/></svg>',
+  whet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M8 9V6M16 9V6M8 16v3M16 16v3"/></svg>',
+  ledger:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  helm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 20v-6a6 6 0 0 1 12 0v6"/><path d="M12 8V4"/><path d="M4 20h16"/><path d="M9 12h.5M14.5 12H15"/></svg>'
+};
+function icon(n){ return '<span class="ic">'+ICONS[n]+'</span>'; }
+
+/* ---------------- static game data ---------------- */
+const RES = ['food','wood','stone','gold'];
+const RES_ICON = {food:'wheat', wood:'tree', stone:'mountain', gold:'coin'};
+const RES_NAME = {food:'Food', wood:'Wood', stone:'Stone', gold:'Gold'};
+
+const BUILDINGS = {
+  palace:  {name:'Palace',       ic:'palace', base:{wood:200, stone:150}, desc:'Seat of your line. +40 gold/hr tax per level. Raises storage.'},
+  farm:    {name:'Farm',         ic:'farm',   base:{food:100, wood:80},   desc:'+60 food/hr per level.'},
+  lumber:  {name:'Lumber Camp',  ic:'tree',   base:{wood:100, food:60},   desc:'+60 wood/hr per level.'},
+  quarry:  {name:'Quarry',       ic:'mountain',base:{wood:120, stone:80}, desc:'+60 stone/hr per level.'},
+  barracks:{name:'Barracks',     ic:'barracks',base:{wood:150, stone:100},desc:'Trains troops. L2 unlocks Archers, L3 unlocks Cavalry. Higher levels train faster.'},
+  walls:   {name:'Walls',        ic:'walls',  base:{wood:80, stone:100},  desc:'+60 defense rating per level. Adds militia when raided.'}
+};
+const BUILD_ORDER = ['palace','farm','lumber','quarry','barracks','walls'];
+const BUILD_TIME = [20,45,90,180,300];          // seconds to reach level 1..5
+const COST_SCALE = 1.7;                          // cost multiplier per level
+
+const TROOPS = {
+  spearman:{name:'Spearman', ic:'spear', need:1, cost:{food:20, wood:10},        time:12, atk:8,  def:10, hp:40, strongVs:'cavalry',  vsText:'Strong vs Cavalry'},
+  archer:  {name:'Archer',   ic:'bow',   need:2, cost:{food:25, wood:15, gold:5},time:18, atk:12, def:6,  hp:30, strongVs:'spearman', vsText:'Strong vs Spearmen'},
+  cavalry: {name:'Cavalry',  ic:'horse', need:3, cost:{food:40, stone:20, gold:15},time:28,atk:16, def:8,  hp:60, strongVs:'archer',   vsText:'Strong vs Archers'}
+};
+const TROOP_ORDER = ['spearman','archer','cavalry'];
+
+/* World map nodes. x/y are % positions. march = one-way seconds. */
+const NODES = [
+  {id:'fields',  name:'Fertile Fields', kind:'gather', res:'food',  x:14, y:20, march:25, flavor:'Golden wheat sways along the river Scamander.'},
+  {id:'grove',   name:'Timber Grove',   kind:'gather', res:'wood',  x:80, y:16, march:35, flavor:'Ancient cedars, tall enough to embarrass the gods.'},
+  {id:'marble',  name:'Marble Quarry',  kind:'gather', res:'stone', x:84, y:44, march:40, flavor:'White stone sleeps in the hill, waiting for walls.'},
+  {id:'goldmine',name:'Gold Mine',      kind:'gather', res:'gold',  x:70, y:72, march:50, flavor:'A vein of sun-gold glints in the torchlight.'},
+  {id:'camp1', name:'Jackal Scouts', kind:'camp', tier:1, x:36, y:36, march:30,
+    garrison:{spearman:4}, loot:{food:120, wood:80, gold:30},
+    flavor:'Mangy outriders sniffing around Trojan land.'},
+  {id:'camp2', name:'Red Sand Raiders', kind:'camp', tier:2, x:56, y:24, march:35,
+    garrison:{spearman:12, archer:8}, loot:{food:200, wood:180, stone:80, gold:80},
+    flavor:'They paint their shields with desert dust and malice.'},
+  {id:'camp3', name:'Ashen Brotherhood', kind:'camp', tier:3, x:24, y:58, march:40,
+    garrison:{spearman:15, archer:12, cavalry:5}, loot:{food:300, wood:250, stone:150, gold:120},
+    flavor:'Oath-bound killers who burned their own banners.'},
+  {id:'camp4', name:'Boar Clan Warband', kind:'camp', tier:4, x:48, y:66, march:45,
+    garrison:{spearman:20, archer:18, cavalry:10}, loot:{food:400, wood:350, stone:250, gold:180},
+    flavor:'They wear boar tusks and answer to no king.'},
+  {id:'camp5', name:'Serpent Guard Elite', kind:'camp', tier:5, x:62, y:48, march:50,
+    garrison:{spearman:25, archer:25, cavalry:18}, loot:{food:500, wood:450, stone:350, gold:250},
+    flavor:'Skaros\u2019 own chosen. Their spears have never broken.'},
+  {id:'shrine', name:'Sunken Shrine', kind:'ruin', x:40, y:10, march:30,
+    garrison:{spearman:6, archer:6}, loot:{gold:250, stone:150},
+    flavor:'Squatters camp among toppled gods. The gold is still there.'},
+  {id:'watchtower', name:'Old Watchtower', kind:'ruin', x:66, y:88, march:40,
+    garrison:{spearman:10, archer:6}, loot:{wood:250, food:200, gold:150},
+    flavor:'A dead king\u2019s tower, now a den of thieves.'},
+  {id:'colossus', name:'Fallen Colossus', kind:'ruin', x:10, y:48, march:45,
+    garrison:{spearman:10, archer:8}, loot:{stone:200, gold:150},
+    flavor:'A bronze giant lies face-down in the marsh. Something glints in its fist.'},
+  {id:'vault', name:'Drowned Vault', kind:'ruin', x:32, y:90, march:50,
+    garrison:{spearman:12, archer:10, cavalry:4}, loot:{gold:300, wood:200},
+    flavor:'A merchant vault swallowed by the river. The locks held; the owners did not.'},
+  {id:'altar', name:'Ashen Altar', kind:'ruin', x:94, y:60, march:55,
+    garrison:{spearman:16, archer:12, cavalry:6}, loot:{food:300, stone:250, gold:200},
+    flavor:'Skaros sacrificed to war here. His priests left in a hurry.'},
+  {id:'myrion', name:'Myrion', kind:'city', x:14, y:80, march:55, wallMult:1.2,
+    garrison:{spearman:20, archer:20, cavalry:12}, loot:{food:400, wood:400, stone:300, gold:300},
+    flavor:'A proud little city that refused Troy\u2019s friendship.'},
+  {id:'daskyla', name:'Daskyla', kind:'city', x:88, y:82, march:60, wallMult:1.3,
+    garrison:{spearman:28, archer:25, cavalry:15}, loot:{food:600, wood:600, stone:500, gold:500},
+    flavor:'Rich, walled, and loudly loyal to Warlord Skaros.'},
+  {id:'skaros', name:'Bastion of Warlord Skaros', kind:'boss', x:88, y:30, march:60, wallMult:1.1,
+    garrison:{spearman:28, archer:22, cavalry:15}, loot:{food:800, wood:800, stone:800, gold:1000},
+    flavor:'Skaros the Render broke three cities before breakfast. End him, and Troy stands unchallenged.'}
+];
+const NODE_BY_ID = {}; NODES.forEach(n=>NODE_BY_ID[n.id]=n);
+const GATHER_TIME = 45;        // seconds spent gathering on site
+const GATHER_YIELD = 12;       // resources per troop per trip
+
+/* Player level spine (v1, max 25). XP awards tuned so a full playthrough
+   lands roughly level 8-10 without grinding. */
+const PLAYER_MAX_LEVEL = 25;
+const XP_BUILD = 30;        // per construction / upgrade completed
+const XP_TRAIN = 2;         // per troop trained
+const XP_GATHER = 40;       // per completed gather trip
+const XP_BATTLE_WIN = 100;  // per victorious battle (incl. raids repelled)
+const XP_QUEST = 60;        // per quest claimed
+function playerXpNeed(level){ return 100 * level; }   // xp to go level -> level+1
+function playerProdMult(){ return Math.pow(1.02, S.player.level - 1); }  // +2%/level
+function playerAtkMult(){ return Math.pow(1.02, S.player.level - 1); }   // +2%/level
+
+/* Heroes: a roster of 4 original commanders. Only the ACTIVE hero grants
+   abilities and earns XP. Theron is unlocked from the start; the others join
+   through deeds (checked by checkHeroUnlocks). */
+const HERO_MAX_LEVEL = 10;
+const HEROES = {
+  theron:{name:'Theron', title:'Warden of the Bronze Gate', ic:'hero',
+    quote:'I held the Bronze Gate with forty spears and a promise. Troy does not kneel — not while I draw breath.',
+    story:'A gate-captain of the old city who refused to flee when the walls fell. The survivors found him still standing at the Bronze Gate, and made him their commander.',
+    unlock:'Yours from the founding of Troy.',
+    abilities:[
+      {lvl:2, name:'Shield Wall', desc:'-15% troop losses in battles Theron leads.'},
+      {lvl:4, name:'War Horn', desc:'+15% army attack in battles Theron leads.'},
+      {lvl:6, name:'Bronze Phalanx', desc:'While Theron is home, Troy\u2019s garrison takes less damage when raided (+3% defense per hero level).'}]},
+  kallias:{name:'Kallias', title:'the Swift-Eyed', ic:'eye',
+    quote:'I have counted the enemy\u2019s spears from three hills away. You will know them before they know you.',
+    story:'A shepherd boy who learned to read dust on the horizon. He once outran a cavalry patrol to warn a village — now he outruns them for Troy.',
+    unlock:'Defeat the Ashen Brotherhood (tier-3 camp).',
+    abilities:[
+      {lvl:1, name:'Pathfinder', desc:'Marches Kallias leads move 25% faster.'}]},
+  sostratos:{name:'Sostratos', title:'the Provider', ic:'amphora',
+    quote:'An army marches on full wagons. Leave the counting to me; leave the glory to you.',
+    story:'A harbor quartermaster who fed a besieged city through a whole winter on fish-heads and arithmetic. Troy\u2019s granaries have never been fuller.',
+    unlock:'Complete 5 gathering trips.',
+    abilities:[
+      {lvl:1, name:'Full Wagons', desc:'Gathering marches Sostratos leads finish 25% faster.'}]},
+  pyrrhos:{name:'Pyrrhos', title:'the Red', ic:'warhelm',
+    quote:'Give me horses and an open field, and I will give you a legend.',
+    story:'A mercenary captain who burned his contract with Skaros and rode to Troy instead. His cavalry charge broke the Red Sand Raiders at dawn.',
+    unlock:'Reach player level 6.',
+    abilities:[
+      {lvl:1, name:'Red Charge', desc:'Cavalry deal +20% attack in battles Pyrrhos leads.'}]}
+};
+const HERO_ORDER = ['theron','kallias','sostratos','pyrrhos'];
+function heroXpNeed(level){ return 100 * level; }
+/* march-speed multiplier for a leading hero */
+function heroMarchMult(heroId, lvl){
+  if(heroId==='kallias') return 0.75;
+  if(heroId==='theron' && lvl>=6) return 0.75;   // Theron's old Forced March
+  return 1;
+}
+/* Theron's home-garrison defense while he is in Troy (Bronze Phalanx) */
+function heroHomeDefMult(){
+  if(S.hero.active==='theron' && !S.hero.away){
+    return Math.max(0.7, 1 - 0.03*heroLevel('theron'));
+  }
+  return 1;
+}
+
+/* Relics: unique permanent buffs, one per ruin cleared. */
+const RELICS = {
+  sickle:  {name:'Sickle of Demeter', ic:'sickle', desc:'Farms +15% food production.', flavor:'It still smells of the first harvest.'},
+  trowel:  {name:'Mason\u2019s Trowel', ic:'trowel', desc:'Construction 10% faster.', flavor:'Laid the cornerstone of a hundred walls.'},
+  whetstone:{name:'Ares\u2019 Whetstone', ic:'whet', desc:'+8% attack in battle.', flavor:'It has never known a dull edge.'},
+  ledger:  {name:'Quartermaster\u2019s Ledger', ic:'ledger', desc:'+10% gathering yields.', flavor:'Every grain accounted for, every debt remembered.'},
+  helm:    {name:'Helm of the Drowned King', ic:'helm', desc:'Troy takes 10% less damage when raided.', flavor:'The sea gives back what it takes. Mostly.'}
+};
+const RELIC_ORDER = ['sickle','trowel','whetstone','ledger','helm'];
+const RUIN_RELIC = {shrine:'sickle', watchtower:'trowel', colossus:'whetstone', vault:'ledger', altar:'helm'};
+function hasRelic(id){ return !!(S.relics && S.relics[id]); }
+
+/* Weekly live events, driven by local calendar day. Modifiers are computed
+   at the point of use from the current date, so offline progress can't
+   stack or double-apply them. */
+const EVENTS = {
+  gather:   {name:'Double Gathering Weekend', ic:'wheat', desc:'All gathering yields \u00d72 until Monday.'},
+  incursion:{name:'Warlord Incursion', ic:'skull', desc:'Skaros\u2019s champions strike Troy today \u2014 repel them for a war chest!'},
+  build:    {name:'Speed-Build Day', ic:'clock', desc:'All construction finishes in half the time.'}
+};
+function activeEvent(dayOverride){
+  const day = (dayOverride===undefined) ? new Date().getDay() : dayOverride;
+  if(day===0 || day===6) return 'gather';
+  if(day===3) return 'incursion';
+  if(day===5) return 'build';
+  return null;
+}
+function gatherYieldMult(){
+  return (activeEvent()==='gather'?2:1) * (hasRelic('ledger')?1.1:1);
+}
+function buildTimeSecs(toLevel){
+  return BUILD_TIME[toLevel-1] * (activeEvent()==='build'?0.5:1) * (hasRelic('trowel')?0.9:1);
+}
+
+/* Quest chain: combat lands fast (quest 3 ≈ 2-3 min in), builder quests follow.
+   8 quests total; each claim grants XP_QUEST player XP on top of the reward. */
+const QUESTS = [
+  {id:'q1', name:'Foundations of Troy', desc:'Build a Farm.', reward:{food:200},
+   check:()=> S.bld.farm>=1},
+  {id:'q2', name:'Raise the Barracks', desc:'Build a Barracks and train 5 Spearmen.', reward:{gold:150, heroxp:60},
+   check:()=> S.stats.trained>=5},
+  {id:'q3', name:'Teeth of the Jackal', desc:'Destroy the Jackal Scouts camp on the world map.', reward:{gold:100, heroxp:120},
+   check:()=> !!(S.nodes.camp1 && S.nodes.camp1.cleared)},
+  {id:'q4', name:'Timber Rights', desc:'Build a Lumber Camp.', reward:{wood:200},
+   check:()=> S.bld.lumber>=1},
+  {id:'q5', name:'Stone Speaks', desc:'Build a Quarry.', reward:{stone:150},
+   check:()=> S.bld.quarry>=1},
+  {id:'q6', name:'A Palace Worthy', desc:'Upgrade the Palace to level 2.', reward:{wood:250},
+   check:()=> S.bld.palace>=2},
+  {id:'q7', name:'Reap the Land', desc:'Gather resources from any site on the world map.', reward:{food:200},
+   check:()=> S.stats.gathers>=1},
+  {id:'q8', name:'The Render Falls', desc:'Defeat Warlord Skaros.', reward:{},
+   check:()=> !!(S.nodes.skaros && S.nodes.skaros.cleared)}
+];
+
+/* ---------------- state ---------------- */
+const SAVE_KEY = 'troySaveV1';
+let S = null;                 // game state (global; used by playerProdMult etc.)
+let UI = {tab:'city', draft:null, nodeFocus:null, achvModalQueue:[]};  // ephemeral UI state
+
+function defaultState(){
+  return {
+    v:1, createdAt:Date.now(), lastSeen:Date.now(),
+    res:{food:600, wood:600, stone:400, gold:300},
+    bld:{palace:1, farm:0, lumber:0, quarry:0, barracks:0, walls:0},
+    build:null,               // {key, toLevel, doneAt}
+    tqueue:[],                // [{type, left, unitDoneAt, unitTime}]
+    troops:{spearman:0, archer:0, cavalry:0},
+    player:{level:1, xp:0},
+    hero:{active:'theron', away:false, unlocked:['theron']},
+    heroes:{theron:{xp:0}},   // id -> {xp}; xp tracked per hero, active hero earns
+    relics:{},                // relic id -> true when found
+    incursionDay:'', incursionNext:false,
+    quests:{},                // id -> true when claimed
+    nodes:{},                 // id -> {cleared:true}
+    marches:[],               // {id, nodeId, troops, hero, phase, arriveAt, gatherAt, returnAt, marchSecs}
+    stats:{trained:0, battles:0, wins:0, gathers:0, raidsRepelled:0, built:0},
+    records:{maxPower:0, bestDayWins:0, winsToday:{day:'',n:0}, fastestSkaros:0, bestGather:0, bestStreak:0},
+    achv:{},                 // achievement id -> true when earned
+    title:'',                // equipped achievement id (display title), '' = none
+    skin:'bronze',            // 'bronze' | 'marble' | 'warred'
+    chronicle:[],            // [{t, text}] newest first, capped at 100
+    daysSeen:[],             // calendar-day strings the game was opened
+    raidsOn:false, nextRaidAt:0, raidWarnAt:0, raidWarned:false, shieldUntil:0,
+    daily:{lastDay:'', streak:0},
+    victory:false, victoryShown:false,
+    seenWelcome:false,
+    marchSeq:1
+  };
+}
+
+function save(){
+  if(!S) return;
+  S.lastSeen = Date.now();
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+  const el = document.getElementById('saveind');
+  if(el){
+    const t = new Date(S.lastSeen);
+    let h = t.getHours(), ap = h>=12?'PM':'AM';
+    h = h%12 || 12;
+    el.textContent = '\u2713 Saved ' + h + ':' + String(t.getMinutes()).padStart(2,'0') + ' ' + ap;
+  }
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || s.v!==1) return null;
+    // migrate old single-hero saves BEFORE the generic fill (the fill would
+    // otherwise plant a fresh heroes map and hide the legacy xp)
+    let legacyHeroXp = null;
+    if(s.hero && s.hero.xp!==undefined && !s.heroes) legacyHeroXp = s.hero.xp||0;
+    // forward-compat: fill any missing fields
+    const d = defaultState();
+    for(const k of Object.keys(d)) if(s[k]===undefined) s[k]=d[k];
+    if(legacyHeroXp!==null) s.heroes = {theron:{xp:legacyHeroXp}};
+    if(!s.player) s.player = {level:1, xp:0};
+    if(!s.heroes) s.heroes = {theron:{xp:0}};
+    if(!s.hero || typeof s.hero!=='object') s.hero = {active:'theron', away:false, unlocked:['theron']};
+    else {
+      if(!s.hero.active) s.hero.active='theron';
+      if(!Array.isArray(s.hero.unlocked)) s.hero.unlocked=['theron'];
+      if(typeof s.hero.away!=='boolean') s.hero.away=false;
+      if(!s.heroes[s.hero.active]) s.heroes[s.hero.active]={xp:0};
+    }
+    if(!s.relics) s.relics = {};
+    if(!s.achv) s.achv = {};
+    if(typeof s.title!=='string') s.title='';
+    if(typeof s.skin!=='string'||!SKINS[s.skin]) s.skin='bronze';
+    if(!Array.isArray(s.chronicle)) s.chronicle=[];
+    if(!Array.isArray(s.daysSeen)) s.daysSeen=[];
+    if(!s.stats) s.stats={trained:0,battles:0,wins:0,gathers:0,raidsRepelled:0,built:0};
+    if(s.stats.built===undefined) s.stats.built = Object.values(s.bld||{}).reduce((a,b)=>a+(b||0),0);
+    if(!s.records||typeof s.records!=='object') s.records={maxPower:0,bestDayWins:0,winsToday:{day:'',n:0},fastestSkaros:0,bestGather:0,bestStreak:0};
+    if(!s.records.winsToday||typeof s.records.winsToday!=='object') s.records.winsToday={day:'',n:0};
+    return s;
+  }catch(e){ return null; }
+}
+
+/* ---------------- helpers ---------------- */
+const $ = sel=>document.querySelector(sel);
+const nowMs = ()=>Date.now();
+function fmtT(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
+  if(h>0) return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  return m+':'+String(s).padStart(2,'0');
+}
+function fmtN(n){ return Math.floor(n).toLocaleString('en-US'); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function heroLevel(id){
+  id = id || (S.hero&&S.hero.active) || 'theron';
+  const h = (S.heroes&&S.heroes[id]) || {xp:0};
+  let lvl=1, xp=h.xp;
+  while(lvl<HERO_MAX_LEVEL && xp>=heroXpNeed(lvl)){ xp-=heroXpNeed(lvl); lvl++; }
+  return lvl;
+}
+function heroHome(){ return !S.hero.away; }
+function activeHero(){ return (S.hero&&S.hero.active)||'theron'; }
+/* XP goes to the active hero only. */
+function gainHeroXP(n){
+  const a = activeHero();
+  if(!S.heroes[a]) S.heroes[a]={xp:0};
+  S.heroes[a].xp += n;
+}
+function selectHero(id){
+  if(!HEROES[id] || !S.hero.unlocked.includes(id)) return;
+  if(id===S.hero.active) return;
+  if(S.hero.away){ toast('Your hero is on a march — wait for their return to change command.'); return; }
+  S.hero.active=id;
+  toast(HEROES[id].name+' '+HEROES[id].title+' takes command of Troy.');
+  save(); render();
+}
+/* Deed-based unlocks: Kallias (tier-3 camp), Sostratos (5 gathers), Pyrrhos (player Lv 6). */
+function checkHeroUnlocks(){
+  const un=id=>{
+    if(!S.hero.unlocked.includes(id)){
+      S.hero.unlocked.push(id);
+      if(!S.heroes[id]) S.heroes[id]={xp:0};
+      chronicle(HEROES[id].name+' '+HEROES[id].title+' has joined Troy.');
+      toast('\u2694 '+HEROES[id].name+' '+HEROES[id].title+' has joined Troy! Open the Hero tab.');
+      save();
+    }
+  };
+  if(S.nodes.camp3 && S.nodes.camp3.cleared) un('kallias');
+  if(S.stats.gathers>=5) un('sostratos');
+  if(S.player.level>=6) un('pyrrhos');
+}
+function troopCount(t){ return Math.floor(S.troops[t]||0); }
+function armyTotal(troopsObj){
+  const o = troopsObj||S.troops;
+  return TROOP_ORDER.reduce((s,t)=>s+Math.floor(o[t]||0),0);
+}
+
+/* ---------------- player level ---------------- */
+function addPlayerXP(n){
+  if(S.player.level>=PLAYER_MAX_LEVEL){ S.player.xp=0; return; }
+  S.player.xp += n;
+  while(S.player.level<PLAYER_MAX_LEVEL && S.player.xp>=playerXpNeed(S.player.level)){
+    S.player.xp -= playerXpNeed(S.player.level);
+    S.player.level++;
+    toast('❖ Player level up! You are now Lv '+S.player.level+' (+2% production, +2% attack)');
+  }
+  if(S.player.level>=PLAYER_MAX_LEVEL) S.player.xp=0;
+}
+
+/* ---------------- economy ---------------- */
+function storageCap(){ return 2000 + 1000*(S.bld.palace||1); }
+function prodRates(){ // per hour, before player bonus
+  return {
+    food: 60*(S.bld.farm||0)*(hasRelic('sickle')?1.15:1),
+    wood: 60*(S.bld.lumber||0),
+    stone:60*(S.bld.quarry||0),
+    gold: 40*(S.bld.palace||0)
+  };
+}
+function grantRes(res, silent){
+  const cap = storageCap();
+  for(const k of RES){
+    if(res[k]) S.res[k] = Math.min(cap, S.res[k]+res[k]);
+  }
+  if(!silent) save();
+}
+function produce(dtSec){
+  const rates = prodRates(), mult = playerProdMult(), cap = storageCap();
+  for(const k of RES){
+    S.res[k] = Math.min(cap, S.res[k] + rates[k]*mult*dtSec/3600);
+  }
+}
+function buildCost(key, toLevel){
+  const base = BUILDINGS[key].base, out = {};
+  const f = Math.pow(COST_SCALE, toLevel-1);
+  for(const k in base) out[k] = Math.ceil(base[k]*f);
+  return out;
+}
+function canAfford(cost){
+  for(const k in cost) if(S.res[k] < cost[k]) return false;
+  return true;
+}
+function pay(cost){
+  for(const k in cost) S.res[k] -= cost[k];
+}
+function costText(cost){
+  return Object.keys(cost).map(k=>icon(RES_ICON[k])+' '+fmtN(cost[k])).join(' &nbsp; ');
+}
+
+/* ---------------- building ---------------- */
+function startBuild(key){
+  if(S.build){ toast('Builders are already busy.'); return; }
+  const lvl = S.bld[key]||0;
+  if(lvl>=5){ toast('Already at max level.'); return; }
+  const toLevel = lvl+1;
+  const cost = buildCost(key, toLevel);
+  if(!canAfford(cost)){ toast('Not enough resources.'); return; }
+  pay(cost);
+  const dur = buildTimeSecs(toLevel);
+  S.build = {key:key, toLevel:toLevel, doneAt:nowMs()+dur*1000, dur:dur};
+  toast(BUILDINGS[key].name+' → Lv '+toLevel+' started.'+(activeEvent()==='build'?' (Speed-Build Day: half time!)':''));
+  save(); render();
+}
+function completeBuild(){
+  const b = S.build;
+  S.bld[b.key] = b.toLevel;
+  S.build = null;
+  S.stats.built++;
+  addPlayerXP(XP_BUILD);
+  toast(BUILDINGS[b.key].name+' reached level '+b.toLevel+'! (+'+XP_BUILD+' XP)');
+  checkQuests();
+  save();
+}
+
+/* ---------------- training ---------------- */
+function trainTime(type){
+  const lvl = S.bld.barracks||1;
+  return TROOPS[type].time * (1 - 0.08*(lvl-1)); // higher barracks = faster
+}
+function queueTrain(type, count){
+  if((S.bld.barracks||0) < TROOPS[type].need){ toast('Requires Barracks Lv '+TROOPS[type].need+'.'); return; }
+  count = Math.max(1, Math.min(50, Math.floor(count)||1));
+  const cost = {};
+  for(const k in TROOPS[type].cost) cost[k] = TROOPS[type].cost[k]*count;
+  if(!canAfford(cost)){ toast('Not enough resources to train '+count+'.'); return; }
+  pay(cost);
+  const ut = trainTime(type);
+  const first = S.tqueue.length===0;
+  S.tqueue.push({type:type, left:count, unitTime:ut, unitDoneAt:nowMs()+(first?ut*1000:0)});
+  // fix chaining: each batch starts when previous ends
+  let t = nowMs();
+  for(const b of S.tqueue){
+    if(b.left>0 && b.unitDoneAt < t) b.unitDoneAt = t + b.unitTime*1000;
+    t = b.unitDoneAt + (b.left-1)*b.unitTime*1000;
+  }
+  toast('Training '+count+' '+TROOPS[type].name+(count>1?'s':'')+'.');
+  save(); render();
+}
+function tickTraining(){
+  let changed = false;
+  while(S.tqueue.length>0){
+    const b = S.tqueue[0];
+    if(nowMs() < b.unitDoneAt) break;
+    b.left--; b.unitDoneAt += b.unitTime*1000;
+    S.troops[b.type] = (S.troops[b.type]||0)+1;
+    S.stats.trained++;
+    addPlayerXP(XP_TRAIN);
+    changed = true;
+    if(b.left<=0) S.tqueue.shift();
+    if(S.tqueue.length>0 && S.tqueue[0].unitDoneAt < nowMs()){
+      // next batch starts now if its timer was never anchored
+      S.tqueue[0].unitDoneAt = Math.max(S.tqueue[0].unitDoneAt, nowMs());
+    }
+  }
+  if(changed){ checkQuests(); save(); }
+  return changed;
+}
+function queueEta(){
+  let t = 0;
+  for(const b of S.tqueue) t += b.left*b.unitTime;
+  return t;
+}
+
+/* ---------------- battles ----------------
+   Auto-resolved in rounds. Each round both sides deal damage simultaneously
+   from surviving units; damage is mitigated by the target's total DEF.
+   Counter matchups grant 1.5x attack. Player side gets +2%/player-level
+   attack, plus hero bonuses (War Horn) and loss reduction (Shield Wall). */
+function simBattle(atk, atkHeroLvl, def, defHeroLvl, opts){
+  opts = opts||{};
+  const atkHero = opts.atkHero||null, defHero = opts.defHero||null;
+  const A={}, D={};
+  for(const t of TROOP_ORDER){ A[t]=Math.max(0,Math.floor((atk[t]||0))); D[t]=Math.max(0,Math.floor((def[t]||0))); }
+  const sum = o=>TROOP_ORDER.reduce((s,t)=>s+o[t],0);
+  const hpOf = o=>TROOP_ORDER.reduce((s,t)=>s+o[t]*TROOPS[t].hp,0);
+  const majority = o=>{ let m=TROOP_ORDER[0]; for(const t of TROOP_ORDER) if(o[t]>o[m]) m=t; return m; };
+  const mA = majority(A), mD = majority(D);
+  const mult = (t, vsMaj)=> (TROOPS[t].strongVs===vsMaj) ? 1.5 : 1;
+  const cavAtkMult = atkHero==='pyrrhos' ? 1.2 : 1;   // Pyrrhos: Red Charge
+  const atkMult = (atkHeroLvl>0 ? playerAtkMult() : 1) * (atkHero==='theron'&&atkHeroLvl>=4 ? 1.15 : 1) * (opts.atkDmgMult||1) * (hasRelic('whetstone')?1.08:1);
+  const defMult = (defHeroLvl>0 ? playerAtkMult() : 1) * (defHero==='theron'&&defHeroLvl>=4 ? 1.15 : 1) * (opts.defAtkMult||1);
+  const atkLossRed = (atkHero==='theron'&&atkHeroLvl>=2) ? 0.85 : 1;
+  const defLossRed = (defHero==='theron'&&defHeroLvl>=2) ? 0.85 : 1;
+  const A0={...A}, D0={...D};
+  // Replay frames: raw float snapshots (round 0 = initial, then after each round).
+  // Kept unrounded so Math.floor() of the final frame matches atkLeft/defLeft exactly.
+  const snap=()=>({a:{spearman:A.spearman,archer:A.archer,cavalry:A.cavalry},
+                   d:{spearman:D.spearman,archer:D.archer,cavalry:D.cavalry},
+                   hpA:hpOf(A),hpD:hpOf(D)});
+  const frames=[snap()];
+  let rounds=0;
+  while(rounds<50){
+    if(sum(A)<=0 || sum(D)<=0) break;
+    const pA = TROOP_ORDER.reduce((s,t)=>s+A[t]*TROOPS[t].atk*(t==='cavalry'?cavAtkMult:1)*mult(t,mD),0)*atkMult;
+    const pD = TROOP_ORDER.reduce((s,t)=>s+D[t]*TROOPS[t].atk*mult(t,mA),0)*defMult;
+    const dA = TROOP_ORDER.reduce((s,t)=>s+A[t]*TROOPS[t].def,0);
+    const dD = TROOP_ORDER.reduce((s,t)=>s+D[t]*TROOPS[t].def,0);
+    const mitA = 1-Math.min(0.6, dA/(dA+500));
+    const mitD = 1-Math.min(0.6, dD/(dD+500));
+    const hA = hpOf(A), hD = hpOf(D);
+    const fA = hA>0 ? Math.max(0, 1-(pD*mitA*atkLossRed)/hA) : 0;
+    const fD = hD>0 ? Math.max(0, 1-(pA*mitD*defLossRed*(opts.defDmgMult||1))/hD) : 0;
+    for(const t of TROOP_ORDER){ A[t]*=fA; D[t]*=fD; }
+    frames.push(snap());
+    rounds++;
+  }
+  const hpAFrac = hpOf(A0)>0 ? hpOf(A)/hpOf(A0) : 0;
+  const hpDFrac = hpOf(D0)>0 ? hpOf(D)/hpOf(D0) : 0;
+  const win = (sum(A)>0 && sum(D)<=0) || (sum(A)>0 && sum(D)>0 && hpAFrac>=hpDFrac) ? 'atk'
+            : (sum(D)>0 && sum(A)<=0) || hpDFrac>hpAFrac ? 'def' : 'atk';
+  const losses = (o0,o1)=>{ const r={}; for(const t of TROOP_ORDER) r[t]=Math.max(0,Math.floor(o0[t]-o1[t])); return r; };
+  // Survivors are floored first, then losses are computed from the floored
+  // survivors — so "lost + survivors" always equals the troops sent. (Fixes an
+  // off-by-one where the report and the returned army disagreed.)
+  const atkLeftF={spearman:Math.floor(A.spearman), archer:Math.floor(A.archer), cavalry:Math.floor(A.cavalry)};
+  const defLeftF={spearman:Math.floor(D.spearman), archer:Math.floor(D.archer), cavalry:Math.floor(D.cavalry)};
+  const atkLost = losses(A0,atkLeftF), defLost = losses(D0,defLeftF);
+  const killed = TROOP_ORDER.reduce((s,t)=>s+defLost[t],0);
+  return {win:win, rounds:rounds, atkLost:atkLost, defLost:defLost,
+          atkLeft:atkLeftF, defLeft:defLeftF,
+          xp: 12*killed, replay:frames};
+}
+
+/* ---------------- marches ---------------- */
+function activeMarches(){ return S.marches.length; }
+
+function sendMarch(nodeId, troops, heroId){
+  const node = NODE_BY_ID[nodeId];
+  if(!node) return;
+  if(S.marches.length>=2){ toast('Only 2 marches at once in this version.'); return; }
+  const total = TROOP_ORDER.reduce((s,t)=>s+(troops[t]||0),0);
+  if(total<=0){ toast('Select at least one troop.'); return; }
+  for(const t of TROOP_ORDER){
+    if((troops[t]||0) > troopCount(t)){ toast('Not enough '+TROOPS[t].name+'s.'); return; }
+  }
+  if(heroId && !heroHome()){ toast(HEROES[heroId].name+' is already on a march.'); return; }
+  if(heroId && !S.hero.unlocked.includes(heroId)){ toast('That hero has not joined Troy yet.'); return; }
+  if(node.kind!=='gather' && S.nodes[nodeId] && S.nodes[nodeId].cleared){ toast('Already conquered.'); return; }
+  // commit troops
+  for(const t of TROOP_ORDER) S.troops[t] -= (troops[t]||0);
+  if(heroId) S.hero.away = true;
+  let secs = node.march;
+  if(heroId) secs = Math.round(secs * heroMarchMult(heroId, heroLevel(heroId)));
+  const t = nowMs();
+  S.marches.push({id:S.marchSeq++, nodeId:nodeId,
+    troops:{spearman:troops.spearman||0, archer:troops.archer||0, cavalry:troops.cavalry||0},
+    hero:heroId||null, phase:'out', arriveAt:t+secs*1000, gatherAt:0, returnAt:0, marchSecs:secs});
+  closeModal();
+  toast('Marching to '+node.name+' ('+fmtT(secs)+').');
+  save(); render();
+}
+
+function resolveAttackMarch(m, silent){
+  const node = NODE_BY_ID[m.nodeId];
+  if(m.hero===true) m.hero='theron';   // normalize ancient saves
+  const heroId = m.hero||null;
+  const heroLvl = heroId ? heroLevel(heroId) : 0;
+  const r = simBattle(m.troops, heroLvl, node.garrison, 0, {defAtkMult:node.wallMult||1, atkHero:heroId});
+  S.stats.battles++;
+  const won = r.win==='atk';
+  let lootGranted = {};
+  const heroXpGain = heroId ? (won ? r.xp : Math.floor(r.xp/3)) : 0;
+  if(heroId) gainHeroXP(heroXpGain);
+  let relicFound = null;
+  if(won){
+    S.stats.wins++;
+    recordBattleWin();
+    lootGranted = {...(node.loot||{})};
+    grantRes(lootGranted, true);
+    const rec = S.nodes[m.nodeId]||{};
+    rec.cleared = true; S.nodes[m.nodeId] = rec;
+    addPlayerXP(XP_BATTLE_WIN);
+    // relics: first clear of a ruin grants its unique relic
+    if(node.kind==='ruin'){
+      const rid = RUIN_RELIC[m.nodeId];
+      if(rid && !hasRelic(rid)){
+        S.relics[rid]=true; relicFound = rid;
+        chronicle('Relic recovered: '+RELICS[rid].name+'.');
+        setTimeout(()=>toast('\uD83C\uDFFA Relic found: <b>'+RELICS[rid].name+'</b> — '+RELICS[rid].desc), 1200);
+      }
+    }
+    if(node.kind==='boss'){
+      S.victory = true;
+      // Swiftest Vengeance: fewest calendar days from founding to Skaros' fall
+      ensureRecords();
+      const days=(S.daysSeen||[]).length||1;
+      if(!S.records.fastestSkaros||days<S.records.fastestSkaros) S.records.fastestSkaros=days;
+      chronicle('Skaros the Render lies broken before the Bronze Gate!');
+    }
+  }
+  // survivors return home
+  m.phase='back'; m.returnAt = nowMs()+m.marchSecs*1000;
+  m.survivors = r.atkLeft;
+  m.result = {won:won, report:r, nodeName:node.name, loot:lootGranted, heroXp:heroXpGain, relic:relicFound};
+  chronicle((won?'Victory at ':'Defeat at ')+node.name+(won?'.':' — the bards will not sing of this day.'));
+  checkQuests();
+  return m.result;
+}
+
+function tickMarches(silent){
+  let changed=false, reports=[];
+  for(const m of S.marches){
+    if(m.hero===true) m.hero='theron';   // normalize ancient saves
+    const node = NODE_BY_ID[m.nodeId];
+    if(m.phase==='out' && nowMs()>=m.arriveAt){
+      if(node.kind==='gather'){
+        m.phase='gather'; m.gatherAt = nowMs()+GATHER_TIME*gatherTimeMult(m.hero)*1000;
+      } else {
+        const res = resolveAttackMarch(m, silent);
+        reports.push(res);
+      }
+      changed=true;
+    } else if(m.phase==='gather' && nowMs()>=m.gatherAt){
+      const n = armyTotal(m.troops);
+      m.cargo = {}; m.cargo[node.res] = Math.round(n*GATHER_YIELD*gatherYieldMult());
+      ensureRecords();
+      if(m.cargo[node.res]>S.records.bestGather) S.records.bestGather=m.cargo[node.res];
+      S.stats.gathers++;
+      addPlayerXP(XP_GATHER);
+      m.phase='back'; m.returnAt = nowMs()+m.marchSecs*1000;
+      changed=true;
+    } else if(m.phase==='back' && nowMs()>=m.returnAt){
+      // deliver survivors + cargo
+      const sv = m.survivors||m.troops;
+      for(const t of TROOP_ORDER) S.troops[t]=(S.troops[t]||0)+Math.floor(sv[t]||0);
+      if(m.cargo) grantRes(m.cargo, true);
+      if(m.hero) S.hero.away=false;
+      m.done=true; changed=true;
+      // battle reports were already shown at resolve time; only toast gather returns here
+      if(m.cargo && !silent) toast('Gatherers returned: +'+fmtN(m.cargo[node.res])+' '+RES_NAME[node.res]+' (+'+XP_GATHER+' XP)');
+      checkQuests();
+    }
+  }
+  const before = S.marches.length;
+  S.marches = S.marches.filter(m=>!m.done);
+  if(S.marches.length!==before) changed=true;
+  if(changed) save();
+  return reports;
+}
+
+/* gathering speed: Sostratos' Full Wagons finishes trips 25% faster */
+function gatherTimeMult(heroId){ return heroId==='sostratos' ? 0.75 : 1; }
+
+/* ---------------- scouting ----------------
+   Garrison intel is hidden until scouts reveal it. 25 gold, 60 seconds. */
+function sendScout(id){
+  const n = NODE_BY_ID[id];
+  if(!n || n.kind==='gather') return;
+  const rec = S.nodes[id]||{};
+  if(rec.scouted){ toast('Already scouted.'); return; }
+  if(rec.scoutDoneAt){ toast('Scouts are already en route.'); return; }
+  if(S.nodes[id]&&S.nodes[id].cleared){ toast('Already conquered — nothing to scout.'); return; }
+  if(S.res.gold<25){ toast('Not enough gold (25 needed for scouts).'); return; }
+  S.res.gold -= 25;
+  rec.scoutDoneAt = nowMs()+60*1000;
+  S.nodes[id] = rec;
+  toast('\uD83D\uDD75 Scouts dispatched to '+n.name+' — report in 60 seconds.');
+  save(); openNode(id);
+}
+function tickScouts(){
+  const now=nowMs(); let changed=false;
+  for(const id in S.nodes){
+    const r=S.nodes[id];
+    if(r && r.scoutDoneAt && !r.scouted && now>=r.scoutDoneAt){
+      r.scouted=true; delete r.scoutDoneAt; changed=true;
+      const n=NODE_BY_ID[id];
+      const gstr=TROOP_ORDER.filter(t=>n.garrison[t]>0).map(t=>n.garrison[t]+' '+TROOPS[t].name).join(', ');
+      toast('\uD83D\uDD75 Scouts report from '+n.name+': '+gstr+'.');
+    }
+  }
+  if(changed) save();
+}
+
+/* ---------------- raids (defend the city) ---------------- */
+function armyPower(troopsObj){
+  const o = troopsObj||S.troops;
+  return TROOP_ORDER.reduce((s,t)=>s+Math.floor(o[t]||0)*(TROOPS[t].atk+TROOPS[t].def),0);
+}
+// First warband strikes ~10 min after raids unlock; afterwards every 20-40 min
+// (randomized). A 2-minute warning precedes each raid so the player can garrison troops.
+function scheduleNextRaid(fromMs, first){
+  const mins = first ? 10 : 20 + Math.random()*20;
+  S.nextRaidAt = fromMs + mins*60*1000;
+  S.raidWarnAt = S.nextRaidAt - 2*60*1000;
+  S.raidWarned = false;
+}
+
+/* Weekly events scheduler: the Warlord Incursion strikes once each Wednesday.
+   Schedules a single flagged raid ~5 min out (3-min heads-up warning). */
+function tickEvents(){
+  const shielded = S.shieldUntil && nowMs()<S.shieldUntil;
+  if(activeEvent()==='incursion' && S.raidsOn && !shielded){
+    const today = dayString(new Date());
+    if(S.incursionDay!==today){
+      S.incursionDay = today;
+      S.incursionNext = true;
+      const t = nowMs();
+      S.nextRaidAt = t + 5*60*1000;
+      S.raidWarnAt = t + 3*60*1000;
+      S.raidWarned = false;
+      save();
+    }
+  }
+}
+
+// Walls contribute militia: folded into the spearman count at 0.75 power each.
+function raidDefenseWithMilitia(){
+  // returns {def, note} — militia folded into spearman count at 0.75 power each
+  const m = (S.bld.walls||0)*10;
+  return {spearman:troopCount('spearman')+Math.round(m*0.75), archer:troopCount('archer'), cavalry:troopCount('cavalry'), militia:m};
+}
+function tickRaid(silent){
+  if(!S.raidsOn) return null;
+  if(!S.raidWarnAt) S.raidWarnAt = S.nextRaidAt - 2*60*1000;   // normalize old saves
+  const now = nowMs();
+  if(S.shieldUntil && now < S.shieldUntil){
+    // Beginner shield: park the raid clock until the shield drops.
+    if(S.nextRaidAt && S.nextRaidAt < now) scheduleNextRaid(S.shieldUntil, false);
+    return null;
+  }
+  // Warning phase: ~2 min heads-up in live sessions (offline raids resolve silently).
+  if(!silent && !S.raidWarned && now>=S.raidWarnAt && now<S.nextRaidAt){
+    S.raidWarned = true; save();
+    toast(S.incursionNext
+      ? '\u2620 <b>Warlord Incursion!</b> Skaros\u2019s champions march on Troy — they strike in ~2 minutes. Garrison every spear!'
+      : '⚠ Warband approaching! Raiders strike Troy in ~2 minutes — keep troops garrisoned!');
+    return {warn:true};
+  }
+  if(now < S.nextRaidAt) return null;
+  const def = raidDefenseWithMilitia();
+  const realDef = {spearman:troopCount('spearman'), archer:troopCount('archer'), cavalry:troopCount('cavalry')};
+  const totalTroops = armyTotal();
+  const jitter = silent ? 1 : (0.85+Math.random()*0.3);
+  // Warband strength scales with player level + garrison size: beatable if you
+  // prepare (troops home, Walls raised), costly if you don't.
+  const raidN = Math.max(5, Math.round((2 + S.player.level + totalTroops*0.3) * jitter));
+  const isIncursion = !!S.incursionNext;
+  const raid = isIncursion
+    ? {spearman:raidN, archer:Math.round(raidN*0.6), cavalry:Math.round(raidN*0.3)}
+    : {spearman:raidN, archer:0, cavalry:0};
+  const defHeroLvl = heroHome() ? heroLevel() : 0;
+  const defHero = heroHome() ? S.hero.active : null;
+  // Walls blunt the assault: each Walls level = -6% attacker damage.
+  // Theron home (Bronze Phalanx) + Helm of the Drowned King blunt it further.
+  const wallDmgMult = Math.max(0.4, 1 - 0.06*(S.bld.walls||0));
+  const defDmgMult = heroHomeDefMult() * (hasRelic('helm')?0.9:1);
+  const r = simBattle(raid, 0, def, defHeroLvl, {atkDmgMult:wallDmgMult, defHero:defHero, defDmgMult:defDmgMult});
+  S.incursionNext = false;
+  S.stats.battles++;
+  // scale militia-inflated losses back to real troops proportionally
+  const militia = def.militia||0;
+  const realTotal = Math.max(1, armyTotal(realDef));
+  const shownTotal = Math.max(1, armyTotal(def));
+  for(const t of TROOP_ORDER){
+    const scaledLoss = Math.round(r.defLost[t]*(realTotal/shownTotal));
+    S.troops[t] = Math.max(0, (S.troops[t]||0)-scaledLoss);
+  }
+  let msg;
+  if(r.win==='def'){
+    S.stats.wins++; S.stats.raidsRepelled++; recordBattleWin();
+    if(isIncursion){
+      grantRes({food:250, wood:250, stone:200, gold:300}, true);
+      addPlayerXP(XP_BATTLE_WIN);
+      chronicle('Warlord Incursion repelled at the walls of Troy!');
+      msg={title:'Incursion Repelled!', won:true, report:r, militia:militia,
+           text:'Skaros\u2019s champions break against your walls! War chest seized: +250 food, +250 wood, +200 stone, +300 gold. (+'+XP_BATTLE_WIN+' XP)'};
+    } else {
+      grantRes({gold:50}, true);
+      addPlayerXP(XP_BATTLE_WIN);
+      chronicle('Raid repelled at the Bronze Gate.');
+      msg={title:'Raid Repelled!', won:true, report:r, militia:militia,
+           text:'Your walls held and the raiders fled. +50 gold looted from their camp. (+'+XP_BATTLE_WIN+' XP)'};
+    }
+  } else {
+    const loss={};
+    for(const k of RES){ loss[k]=Math.floor(S.res[k]*0.08); S.res[k]-=loss[k]; }
+    chronicle('Raiders plundered the stores of Troy.');
+    msg={title:'Troy Was Raided!', won:false, report:r, militia:militia, loss:loss,
+         text:'Raiders broke through and plundered your stores (-8% of each resource). Raise your Walls and keep troops garrisoned!'};
+  }
+  scheduleNextRaid(nowMs(), false);
+  checkQuests(); save();
+  return msg;
+}
+
+/* ---------------- quests ---------------- */
+function questState(q){
+  if(S.quests[q.id]) return 'done';
+  const idx = QUESTS.indexOf(q);
+  if(idx>0 && !S.quests[QUESTS[idx-1].id]) return 'locked';
+  return q.check() ? 'claimable' : 'active';
+}
+function currentQuest(){
+  for(const q of QUESTS){ const st=questState(q); if(st==='active'||st==='claimable') return {q:q, st:st}; }
+  return null;
+}
+function checkQuests(){ /* states are derived; nothing to store */ }
+function claimQuest(id){
+  const q = QUESTS.find(x=>x.id===id);
+  if(!q || questState(q)!=='claimable') return;
+  S.quests[id]=true;
+  chronicle('Quest completed: '+q.name+'.');
+  const rw=[];
+  if(q.reward) for(const k of Object.keys(q.reward)){
+    if(k==='heroxp'){ gainHeroXP(q.reward[k]); rw.push(q.reward[k]+' hero XP'); }
+    else { grantRes({[k]:q.reward[k]}, true); rw.push('+'+q.reward[k]+' '+RES_NAME[k]); }
+  }
+  addPlayerXP(XP_QUEST);
+  rw.push('+'+XP_QUEST+' XP');
+  if(id==='q4' && !S.raidsOn){
+    S.raidsOn=true; scheduleNextRaid(nowMs(), true);
+    S.shieldUntil = nowMs() + 24*60*60*1000;   // beginner shield: 24h of peace (online version: 3 days)
+    setTimeout(()=>toast('🛡 Beginner shield: raiders cannot strike for 24 hours. After that, warbands come every 20–40 min — keep troops home and raise your Walls!'), 600);
+  }
+  if(id==='q8'){ S.victory=true; }
+  toast('Quest complete: '+q.name+' — '+rw.join(', '));
+  save(); render();
+}
+
+/* ---------------- daily login tribute ----------------
+   Streak tracked by local calendar-day string (not timestamp). First load of a
+   new day grants an escalating 7-day streak reward; missing a day resets to 1. */
+const DAILY_TRIBUTE = [
+  {food:150, wood:150},
+  {food:200, wood:200, stone:100},
+  {food:250, wood:250, stone:150, gold:100},
+  {food:300, wood:300, stone:200, gold:150, xp:60},
+  {food:350, wood:350, stone:250, gold:200, xp:80},
+  {food:400, wood:400, stone:300, gold:250, xp:100},
+  {food:500, wood:500, stone:400, gold:350, xp:150, heroxp:60}
+];
+function tributeDesc(rw){
+  const p=[];
+  for(const k of RES) if(rw[k]) p.push('+'+fmtN(rw[k])+' '+RES_NAME[k]);
+  if(rw.xp) p.push('+'+rw.xp+' player XP');
+  if(rw.heroxp) p.push('+'+rw.heroxp+' hero XP');
+  return p.join(', ');
+}
+function dayString(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dailyLogin(){
+  if(!S.daily) S.daily={lastDay:'', streak:0};
+  const now=new Date(), today=dayString(now);
+  if(S.daily.lastDay===today) return null;
+  const yesterday=dayString(new Date(now.getTime()-86400000));
+  S.daily.streak = (S.daily.lastDay===yesterday) ? Math.min(7, S.daily.streak+1) : 1;
+  ensureRecords();
+  if(S.daily.streak>S.records.bestStreak) S.records.bestStreak=S.daily.streak;
+  S.daily.lastDay = today;
+  if(!Array.isArray(S.daysSeen)) S.daysSeen=[];
+  if(!S.daysSeen.includes(today)) S.daysSeen.push(today);
+  const rw = DAILY_TRIBUTE[S.daily.streak-1];
+  const res={}; for(const k of RES) if(rw[k]) res[k]=rw[k];
+  grantRes(res, true);
+  if(rw.xp) addPlayerXP(rw.xp);
+  if(rw.heroxp) gainHeroXP(rw.heroxp);
+  save();
+  return {day:S.daily.streak, desc:tributeDesc(rw)};
+}
+function dailyTributeModal(d, info){
+  let dots='';
+  for(let i=1;i<=7;i++) dots+='<span class="sdot'+(i<=d.day?' on':'')+'">'+i+'</span>';
+  let html='<div class="winbanner" style="color:var(--gold);text-shadow:0 2px 0 #000">🎁 DAILY TRIBUTE 🎁</div>'+
+    '<div class="flavor">The people of Troy lay gifts at your gate.'+(d.day>=7?' The gods themselves smile upon your reign!':'')+'</div>'+
+    '<div class="streak">'+dots+'</div>'+
+    '<table class="rep"><tr><th>Day '+d.day+' tribute</th><td>'+esc(d.desc)+'</td></tr></table>'+
+    '<div class="small center">Return tomorrow to grow the streak — miss a day and it falls back to Day 1.</div>';
+  if(info && info.events.length)
+    html+='<hr class="bronze"><div class="small"><b>While you were away ('+fmtT(info.elapsed)+'):</b></div>'+
+          '<ul class="small">'+info.events.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>';
+  html+='<br><div class="center"><button class="btn" onclick="Game.closeModal()">Accept Tribute</button></div>';
+  openModal(html);
+}
+
+/* ---------------- achievements & titles ----------------
+   Pure status, no stat bonuses. Checked every tick; newly earned ones toast
+   immediately and queue a single modal (shown once any report modal closes). */
+const ACHIEVEMENTS=[
+  {id:'firstblood', name:'First Blood', title:'Blooded', desc:'Win your first battle.', check:()=>S.stats.wins>=1},
+  {id:'veteran', name:'Veteran of Troy', title:'Veteran', desc:'Win 25 battles.', check:()=>S.stats.wins>=25},
+  {id:'skarosbane', name:'Skaros-Bane', title:'Skaros-Bane', desc:'Defeat Warlord Skaros in the final battle.', check:()=>!!(S.nodes.skaros&&S.nodes.skaros.cleared)},
+  {id:'legion', name:'Legion-Builder', title:'Legion-Builder', desc:'Train 100 troops.', check:()=>S.stats.trained>=100},
+  {id:'architect', name:'Architect of Troy', title:'Architect', desc:'Construct 15 buildings.', check:()=>S.stats.built>=15},
+  {id:'hoarder', name:'Hoarder', title:'Hoarder', desc:'Hold 5,000 of any single resource.', check:()=>RES.some(k=>Math.floor(S.res[k])>=5000)},
+  {id:'unbreakable', name:'Unbreakable', title:'Unbreakable', desc:'Repel 5 raids on Troy.', check:()=>S.stats.raidsRepelled>=5},
+  {id:'loyal', name:'Loyal', title:'Loyal', desc:'Reach a 7-day Daily Tribute streak.', check:()=>S.daily.streak>=7},
+  {id:'survivor', name:'Survivor', title:'Survivor', desc:'Open Troy on 3 different days.', check:()=>(S.daysSeen||[]).length>=3},
+  {id:'explorer', name:'Explorer', title:'Explorer', desc:'Scout 5 enemy positions.', check:()=>Object.keys(S.nodes).filter(id=>S.nodes[id].scouted).length>=5},
+  {id:'relichunter', name:'Relic Hunter', title:'Relic Hunter', desc:'Recover 3 ancient relics.', check:()=>Object.keys(S.relics||{}).length>=3},
+  {id:'heromaker', name:'Hero-Maker', title:'Hero-Maker', desc:'Gather all 4 heroes of Troy.', check:()=>S.hero.unlocked.length>=4}
+];
+function achvTitle(id){ const a=ACHIEVEMENTS.find(x=>x.id===id); return a?a.title:''; }
+function checkAchv(){
+  if(!S.achv) S.achv={};
+  const fresh=[];
+  for(const a of ACHIEVEMENTS){
+    if(S.achv[a.id]) continue;
+    let ok=false; try{ ok=!!a.check(); }catch(e){ ok=false; }
+    if(ok){
+      S.achv[a.id]=true; fresh.push(a);
+      chronicle('Achievement earned: '+a.name+' — the title "'+a.title+'" is yours to bear.');
+    }
+  }
+  if(fresh.length){
+    toast('🏆 Achievement'+(fresh.length>1?'s':'')+': <b>'+fresh.map(a=>esc(a.name)).join(', ')+'</b>');
+    UI.achvModalQueue.push(fresh);
+    save();
+  }
+}
+function setTitle(id){
+  if(id && !(S.achv&&S.achv[id])){ toast('Title not earned yet.'); return; }
+  S.title=id||'';
+  save(); render();
+  if(id) toast('Title equipped: <b>'+esc(achvTitle(id))+'</b>');
+}
+function drainAchvModals(){
+  if(!UI.achvModalQueue.length) return;
+  if($('#modal-root').classList.contains('open')) return;   // wait for battle reports etc.
+  const fresh=UI.achvModalQueue.shift();
+  let html='<div class="winbanner" style="color:var(--gold);text-shadow:0 2px 0 #000">🏆 ACHIEVEMENT'+(fresh.length>1?'S':'')+'</div>';
+  for(const a of fresh){
+    html+='<div class="card" style="margin-bottom:8px"><div class="bld-name">'+esc(a.name)+'</div>'+
+      '<div class="small">'+esc(a.desc)+'</div>'+
+      '<div class="small" style="margin-top:4px">Title earned: <b style="color:var(--gold)">'+esc(a.title)+'</b></div>'+
+      '<button class="btn small" style="margin-top:6px" onclick="Game.equipTitle(\''+a.id+'\')">Bear this title</button></div>';
+  }
+  html+='<div class="center"><button class="btn ghost small" onclick="Game.closeModal()">Continue</button></div>';
+  openModal(html);
+}
+
+/* ---------------- kingdom chronicle ----------------
+   The player's personal legend: major deeds with timestamps, newest first. */
+function chronicle(text, t){
+  if(!S.chronicle) S.chronicle=[];
+  S.chronicle.unshift({t:t||nowMs(), text:String(text)});
+  if(S.chronicle.length>100) S.chronicle.length=100;
+}
+function renderChronicle(){
+  const ch=S.chronicle||[];
+  let html='<h2 class="sec">Chronicle of Troy</h2>';
+  if(!ch.length) return html+'<div class="card"><div class="small">No deeds recorded yet. Your legend begins now.</div></div>';
+  let body='', lastDay='';
+  for(const e of ch){
+    const d=new Date(e.t), day=dayString(d);
+    if(day!==lastDay){ lastDay=day;
+      body+='<div class="ch-day">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</div>'; }
+    body+='<div class="ch-row"><span class="ch-time">'+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</span><span>'+esc(e.text)+'</span></div>';
+  }
+  return html+'<div class="card ch-tl">'+body+'</div>';
+}
+
+/* ---------------- leaderboards (personal records) ----------------
+   Single-player records engine with Greek-myth flavor ranks. Records update
+   automatically after battles, gathers, and logins. The cross-player board
+   has a labeled placeholder home below for the online version. */
+function ensureRecords(){
+  if(!S.records||typeof S.records!=='object') S.records={};
+  const d={maxPower:0,bestDayWins:0,fastestSkaros:0,bestGather:0,bestStreak:0};
+  for(const k of Object.keys(d)) if(typeof S.records[k]!=='number') S.records[k]=d[k];
+  if(!S.records.winsToday||typeof S.records.winsToday!=='object') S.records.winsToday={day:'',n:0};
+}
+function recordBattleWin(){
+  ensureRecords();
+  const today=dayString(new Date()), wt=S.records.winsToday;
+  if(wt.day!==today){ wt.day=today; wt.n=0; }
+  wt.n++;
+  if(wt.n>S.records.bestDayWins) S.records.bestDayWins=wt.n;
+}
+function updatePowerRecord(){
+  ensureRecords();
+  const p=armyPower();
+  if(p>S.records.maxPower) S.records.maxPower=p;
+}
+const RECORD_DEFS=[
+  {id:'maxPower', name:'Mightiest Host', desc:'Highest army power ever fielded.', fmt:v=>fmtN(v)+' power',
+   ranks:[[0,'Levy of Farmers'],[200,'Bronze Militia'],[800,'Hoplite Phalanx'],[3000,'Myrmidon Host'],[12000,'Army of Legend']]},
+  {id:'bestDayWins', name:'Bloodiest Day', desc:'Most battle victories in a single day.', fmt:v=>v+(v===1?' victory':' victories'),
+   ranks:[[0,'Unblooded'],[1,'Skirmisher'],[5,'Raider'],[15,'Warlord'],[40,'Scourge of the Aegean']]},
+  {id:'fastestSkaros', name:'Swiftest Vengeance', desc:'Fewest days from founding to Skaros\u2019 fall.', fmt:v=>v?v+(v===1?' day':' days'):'unclaimed',
+   invert:true, ranks:[[0,'Vengeance Unclaimed'],[31,'Relentless'],[15,'Patient Hunter'],[8,'Hero of the Siege'],[1,'Wrath of Achilles']]},
+  {id:'bestGather', name:'Greatest Haul', desc:'Most resources brought home in one gather trip.', fmt:v=>'+'+fmtN(v),
+   ranks:[[0,'Empty Baskets'],[50,'Forager'],[200,'Caravan Master'],[600,'Harvest King'],[1500,'Bounty of Demeter']]},
+  {id:'bestStreak', name:'Most Faithful', desc:'Longest Daily Tribute streak.', fmt:v=>v+(v===1?' day':' days'),
+   ranks:[[0,'Stranger'],[1,'Guest-Friend'],[3,'Hearth-Keeper'],[5,'Oathbound'],[7,'Beloved of the Gods']]}
+];
+function recordRank(rd,v){
+  if(rd.invert){
+    if(!v) return rd.ranks[0][1];
+    let name=rd.ranks[1][1];
+    for(let i=1;i<rd.ranks.length;i++) if(v<=rd.ranks[i][0]) name=rd.ranks[i][1];
+    return name;
+  }
+  let name=rd.ranks[0][1];
+  for(const th of rd.ranks) if(v>=th[0]) name=th[1];
+  return name;
+}
+function renderLeaderboards(){
+  ensureRecords();
+  let html='<h2 class="sec">\uD83C\uDFC6 Leaderboards</h2><div class="card">'+
+    '<div class="small" style="margin-bottom:8px">Your personal legends, as the bards of Troy will sing them.</div>';
+  for(const rd of RECORD_DEFS){
+    const v=S.records[rd.id]||0;
+    html+='<div class="hrow"><div style="flex:1"><div class="bld-name" style="font-size:14px">'+esc(rd.name)+'</div>'+
+      '<div class="small">'+esc(rd.desc)+'</div></div>'+
+      '<div style="text-align:right;min-width:112px"><div class="bld-name" style="font-size:13px;color:var(--gold)">'+esc(recordRank(rd,v))+'</div>'+
+      '<div class="small">'+esc(rd.fmt(v))+'</div></div></div>';
+  }
+  html+='</div><div class="card"><div class="bld-name">\uD83C\uDF0A Rivals from Across the Aegean</div>'+
+    '<div class="small">When Troy goes online, this board will rank the mightiest commanders of every kingdom — rivals to envy, allies to court. Until then, your only rival is the commander you were yesterday.</div></div>';
+  return html;
+}
+
+/* ---------------- practice sparring ----------------
+   Zero-stakes battles against your own garrison (or a preset): no losses,
+   no loot, no XP — pure strategy testing. Reports are watchable in the
+   battle viewer via LASTW kind 'practice'. */
+const PRACTICE_PRESETS=[
+  {id:'mirror', name:'Mirror', desc:'An exact copy of your garrison'},
+  {id:'balanced', name:'Balanced Phalanx', desc:'Even thirds of spearmen, archers, cavalry'},
+  {id:'cavalry', name:'Cavalry Charge', desc:'60% cavalry'},
+  {id:'archers', name:'Archer Volley', desc:'60% archers'},
+  {id:'spearwall', name:'Spearman Wall', desc:'60% spearmen'}
+];
+function practiceOpponent(preset){
+  const tot=armyTotal();
+  if(preset==='mirror') return {spearman:troopCount('spearman'),archer:troopCount('archer'),cavalry:troopCount('cavalry')};
+  const mix={balanced:[1/3,1/3,1/3],cavalry:[0.2,0.2,0.6],archers:[0.2,0.6,0.2],spearwall:[0.6,0.2,0.2]}[preset]||[1/3,1/3,1/3];
+  const o={}; TROOP_ORDER.forEach((t,i)=>{ o[t]=Math.floor(tot*mix[i]); });
+  return o;
+}
+function runPractice(){
+  const p=UI.practice;
+  if(!p) return;
+  const atk={}; let n=0;
+  for(const t of TROOP_ORDER){
+    atk[t]=Math.min(Math.max(0,Math.floor(p.troops[t]||0)), troopCount(t));
+    n+=atk[t];
+  }
+  if(n<=0){ toast('Choose at least one troop for your sparring force.'); return; }
+  // hero level 0 both sides: no hero bonuses, no player attack scaling — pure troops
+  const r=simBattle(atk, 0, practiceOpponent(p.preset), 0, {});
+  practiceReportModal({won:r.win==='atk', report:r});
+}
+function practiceReportModal(res){
+  const r=res.report;
+  LASTW={kind:'practice', res:res, atkLabel:'Your Sparring Force', defLabel:'Opposing Force'};
+  openModal('<div class="winbanner" style="color:'+(res.won?'#4a6a28':'var(--red)')+'">'+(res.won?'\u2694 VICTORY \u2694':'\u2620 DEFEAT \u2620')+'</div>'+
+    '<h3 class="center">Practice Spar</h3>'+
+    '<div class="small center">A training bout on the practice field — no troops were lost, no loot taken, no XP earned.</div>'+
+    '<div class="small center">The bout lasted '+r.rounds+' rounds.</div>'+
+    '<table class="rep"><tr><th>Your force "lost"</th><td>'+lossRow(r.atkLost)+'</td></tr>'+
+    '<tr><th>Foe "lost"</th><td>'+lossRow(r.defLost)+'</td></tr></table>'+
+    '<div class="center"><button class="btn" onclick="Game.watchBattle()">\u2694 Watch Battle</button> '+
+    '<button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+}
+
+/* ---------------- city skins ----------------
+   Chrome re-themes via body[data-skin]; pure vanity, no stat bonuses. */
+const SKINS={
+  bronze:{name:'Bronze', desc:'The classic bronze-age look of Troy.'},
+  marble:{name:'Marble', desc:'White marble and gold. Earned with the Architect achievement.', need:'architect'},
+  warred:{name:'War-Red', desc:'Dark red and black iron. Earned with the Skaros-Bane achievement.', need:'skarosbane'}
+};
+function skinUnlocked(id){ const sk=SKINS[id]; return !!(sk && (!sk.need || (S.achv&&S.achv[sk.need]))); }
+function applySkin(){ document.body.dataset.skin=(S.skin&&SKINS[S.skin])?S.skin:'bronze'; }
+function setSkin(id){
+  if(!SKINS[id]) return;
+  if(!skinUnlocked(id)){
+    const sk=SKINS[id], an=ACHIEVEMENTS.find(a=>a.id===sk.need);
+    toast('🔒 '+sk.name+' skin is locked — earn the "'+(an?an.name:sk.need)+'" achievement.');
+    return;
+  }
+  S.skin=id; applySkin(); save(); render();
+  toast('City skin: <b>'+SKINS[id].name+'</b>');
+}
+function renderSkinPicker(){
+  let html='<h2 class="sec">City Skin</h2><div class="card"><div class="small" style="margin-bottom:8px">Dress Troy in the colors of your legend. Pure vanity — no bonuses, just glory.</div><div class="skinrow">';
+  for(const id of Object.keys(SKINS)){
+    const sk=SKINS[id], un=skinUnlocked(id), active=S.skin===id;
+    html+='<button class="skinbtn'+(active?' active':'')+'" '+(un?'':'disabled')+' onclick="Game.setSkin(\''+id+'\')">'+
+      '<span class="skinsw" data-sk="'+id+'"></span><span class="skinnm">'+sk.name+'</span>'+
+      '<span class="small">'+(un?(active?'Worn':'Wear'):'🔒 '+(sk.need==='architect'?'Architect':'Skaros-Bane'))+'</span></button>';
+  }
+  return html+'</div></div>';
+}
+
+/* ---------------- offline progress ---------------- */function applyOffline(){
+  const elapsed = Math.min(Math.max(0,(nowMs()-S.lastSeen)/1000), 8*3600);
+  const events=[];
+  if(elapsed>=1){
+    produce(elapsed);
+    const hrs = (elapsed/3600);
+    if(hrs>=0.05) events.push('+'+fmtN(prodRates().food*playerProdMult()*hrs)+' food, +'+fmtN(prodRates().wood*playerProdMult()*hrs)+' wood, +'+fmtN(prodRates().stone*playerProdMult()*hrs)+' stone, +'+fmtN(prodRates().gold*playerProdMult()*hrs)+' gold produced while away ('+fmtT(elapsed)+')');
+  }
+  // finish elapsed build
+  if(S.build && nowMs()>=S.build.doneAt){
+    const b=S.build; S.bld[b.key]=b.toLevel; S.build=null;
+    addPlayerXP(XP_BUILD,true);
+    events.push(BUILDINGS[b.key].name+' finished → Lv '+b.toLevel+' (+'+XP_BUILD+' XP)');
+  }
+  // finish elapsed training (sequential)
+  let trained=0;
+  while(S.tqueue.length>0){
+    const b=S.tqueue[0];
+    if(nowMs()<b.unitDoneAt) break;
+    b.left--; b.unitDoneAt+=b.unitTime*1000;
+    S.troops[b.type]=(S.troops[b.type]||0)+1; S.stats.trained++; trained++;
+    addPlayerXP(XP_TRAIN,true);
+    if(b.left<=0) S.tqueue.shift();
+  }
+  if(trained>0) events.push(trained+' troops finished training (+'+(trained*XP_TRAIN)+' XP)');
+  // marches: resolve arrivals/gathers/returns silently, collect summaries
+  let guard=0;
+  while(guard++<20){
+    let progressed=false;
+    for(const m of S.marches){
+      if(m.hero===true) m.hero='theron';   // normalize ancient saves
+      const node=NODE_BY_ID[m.nodeId];
+      if(m.phase==='out' && nowMs()>=m.arriveAt){
+        if(node.kind==='gather'){ m.phase='gather'; m.gatherAt=m.arriveAt+GATHER_TIME*gatherTimeMult(m.hero)*1000; }
+        else { resolveAttackMarch(m,true); events.push((m.result.won?'Victory':'Defeat')+' at '+node.name+' (+'+(m.result.won?XP_BATTLE_WIN:0)+' XP)'+(m.result.relic?' — relic found: '+RELICS[m.result.relic].name:'')+')'); }
+        progressed=true;
+      } else if(m.phase==='gather' && nowMs()>=m.gatherAt){
+        const n=armyTotal(m.troops); m.cargo={}; m.cargo[node.res]=Math.round(n*GATHER_YIELD*gatherYieldMult());
+        S.stats.gathers++; addPlayerXP(XP_GATHER,true);
+        m.phase='back'; m.returnAt=m.gatherAt+m.marchSecs*1000; progressed=true;
+      } else if(m.phase==='back' && nowMs()>=m.returnAt){
+        const sv=m.survivors||m.troops;
+        for(const t of TROOP_ORDER) S.troops[t]=(S.troops[t]||0)+Math.floor(sv[t]||0);
+        if(m.cargo){ grantRes(m.cargo,true); events.push('Gatherers returned: +'+fmtN(m.cargo[node.res])+' '+RES_NAME[node.res]); }
+        if(m.hero) S.hero.away=false;
+        m.done=true; progressed=true;
+      }
+    }
+    S.marches=S.marches.filter(m=>!m.done);
+    if(!progressed) break;
+  }
+  // raids elapsed while away (silent, fixed factor)
+  if(S.raidsOn){
+    let n=0;
+    while(nowMs()>=S.nextRaidAt && n<24){ tickRaid(true); n++; }
+    if(n>0) events.push(n+' raid(s) struck Troy while you were away.');
+  }
+  // scouts that reported while away
+  for(const id in S.nodes){
+    const r=S.nodes[id];
+    if(r && r.scoutDoneAt && !r.scouted && nowMs()>=r.scoutDoneAt){
+      r.scouted=true; delete r.scoutDoneAt;
+      const nd=NODE_BY_ID[id];
+      const gstr=TROOP_ORDER.filter(t=>nd.garrison[t]>0).map(t=>nd.garrison[t]+' '+TROOPS[t].name).join(', ');
+      events.push('Scouts reported from '+nd.name+': '+gstr+'.');
+    }
+  }
+  checkQuests(); save();
+  return {elapsed:elapsed, events:events};
+}
+
+/* ---------------- rendering ---------------- */
+function renderHeader(){
+  const rates = prodRates(), mult = playerProdMult(), cap = storageCap();
+  const tname = (S.title&&S.achv&&S.achv[S.title]) ? achvTitle(S.title) : '';
+  $('#resbar .title').innerHTML = 'TROY &nbsp;·&nbsp; <span style="color:var(--gold)">Lv '+S.player.level+'</span>'+
+    (tname?' &nbsp;·&nbsp; <span style="color:var(--bronze-l);font-size:12px;letter-spacing:1px">'+esc(tname)+'</span>':'');
+  $('#resgrid').innerHTML = RES.map(k=>
+    '<div class="res-chip" title="Storage cap '+fmtN(cap)+'">'+
+    '<div class="r-top">'+icon(RES_ICON[k])+' '+fmtN(S.res[k])+'</div>'+
+    '<div class="r-rate">+'+fmtN(rates[k]*mult)+'/h</div></div>'
+  ).join('');
+}
+function renderHint(){
+  // Raid warning takes over the hint bar with a live countdown.
+  if(S.raidsOn && S.raidWarnAt && nowMs()>=S.raidWarnAt && nowMs()<S.nextRaidAt){
+    $('#hinttext').textContent = '⚠ Warband approaching! Raid in '+fmtT((S.nextRaidAt-nowMs())/1000)+' — keep troops garrisoned in Troy!';
+    return;
+  }
+  const cq = currentQuest();
+  $('#hinttext').textContent = cq
+    ? ('Quest '+(QUESTS.indexOf(cq.q)+1)+'/'+QUESTS.length+': '+cq.q.desc+(cq.st==='claimable'?' — reward ready! Open Quests.':''))
+    : 'Troy stands triumphant. Expand your legend.';
+}
+const TABS = [['city','City','palace'],['map','Map','pin'],['army','Army','sword'],['hero','Hero','hero'],['quests','Quests','scroll']];
+function renderTabs(){
+  const cq = currentQuest();
+  $('#tabbar').innerHTML = TABS.map(t=>
+    '<button class="tabbtn'+(UI.tab===t[0]?' active':'')+'" onclick="Game.tab(\''+t[0]+'\')">'+
+    icon(t[2])+'<span>'+t[1]+'</span>'+
+    '<span class="dot'+(t[0]==='quests'&&cq&&cq.st==='claimable'?' show':'')+'"></span></button>'
+  ).join('');
+}
+
+function buildingCard(key){
+  const b = BUILDINGS[key], lvl = S.bld[key]||0;
+  let pips='';
+  for(let i=1;i<=5;i++) pips+='<span class="'+(i<=lvl?'on':'')+'">◆</span>';
+  let action='';
+  if(S.build && S.build.key===key){
+    const left=(S.build.doneAt-nowMs())/1000, total=S.build.dur||BUILD_TIME[S.build.toLevel-1];
+    const pct=Math.min(100, Math.max(0, 100*(1-left/total)));
+    action='<div class="small">'+icon('clock')+' Building → Lv '+S.build.toLevel+' — '+fmtT(left)+'</div>'+
+           '<div class="prog"><div style="width:'+pct+'%"></div></div>';
+  } else if(lvl>=5){
+    action='<div class="small">Max level reached.</div>';
+  } else {
+    const toLevel=lvl+1, cost=buildCost(key,toLevel), t=Math.round(buildTimeSecs(toLevel)), busy=!!S.build;
+    action='<div class="costline">'+costText(cost)+' &nbsp; '+icon('clock')+' '+fmtT(t)+'</div>'+
+      '<button class="btn small" '+((busy||!canAfford(cost))?'disabled':'')+' onclick="Game.build(\''+key+'\')">'+
+      (lvl===0?'Build':'Upgrade to Lv '+toLevel)+'</button>'+
+      (busy?'<div class="small">Builders are busy elsewhere.</div>':'');
+  }
+  let extra='';
+  if(key==='farm'||key==='lumber'||key==='quarry'){
+    const rk = key==='farm'?'food':key==='lumber'?'wood':'stone';
+    extra='<div class="small">Produces '+fmtN(60*lvl*playerProdMult())+' '+RES_NAME[rk]+'/hr</div>';
+  }
+  if(key==='palace') extra='<div class="small">Tax '+fmtN(40*lvl*playerProdMult())+' gold/hr · Storage cap '+fmtN(storageCap())+'</div>';
+  if(key==='walls') extra='<div class="small">Defense rating '+(60*lvl)+' · +'+(10*lvl)+' militia when raided</div>';
+  if(key==='barracks') extra='<div class="small">'+(lvl>=3?'Trains Spearmen, Archers & Cavalry':lvl===2?'Trains Spearmen & Archers':lvl===1?'Trains Spearmen':'Not built')+' · -8% train time/level</div>';
+  return '<div class="card"><div class="bld-head"><div class="bld-icon">'+icon(b.ic)+'</div>'+
+    '<div><div class="bld-name">'+b.name+'</div><div class="lvl-pips">'+pips+'</div>'+
+    '<div class="bld-desc">'+b.desc+'</div>'+extra+'</div></div>'+action+'</div>';
+}
+function renderCity(){
+  const cq=currentQuest();
+  let html='';
+  if(cq){
+    html+='<div class="card" style="border-color:var(--red)"><div class="qrow"><div class="qnum">'+(QUESTS.indexOf(cq.q)+1)+'</div>'+
+      '<div style="flex:1"><div class="bld-name">'+esc(cq.q.name)+'</div><div class="small">'+esc(cq.q.desc)+'</div>'+
+      (cq.st==='claimable'?'<button class="btn small" onclick="Game.tab(\'quests\')">Claim Reward</button>':'')+
+      '</div></div></div>';
+  }
+  if(S.shieldUntil && nowMs()<S.shieldUntil){
+    html+='<div class="card" style="border-color:var(--bronze)"><div class="small center">🛡 <b>Beginner Shield</b> — raiders cannot strike for '+fmtT((S.shieldUntil-nowMs())/1000)+'</div></div>';
+  }
+  const ev=activeEvent();
+  if(ev){
+    const E=EVENTS[ev];
+    const extra=(ev==='incursion'&&S.incursionNext)?' <b>Raiders incoming!</b>':'';
+    html+='<div class="card" style="border-color:var(--gold)"><div class="small center">\uD83C\uDF89 <b>'+esc(E.name)+'</b> — '+esc(E.desc)+extra+'</div></div>';
+  }
+  html+='<h2 class="sec">City of Troy</h2>';
+  for(const k of BUILD_ORDER) html+=buildingCard(k);
+  html+=renderSkinPicker();
+  $('#view-city').innerHTML=html;
+}
+
+function mapBG(){
+  return '<svg id="mapbg" viewBox="0 0 100 100" preserveAspectRatio="none">'+
+  '<defs><radialGradient id="parch" cx="45%" cy="40%" r="85%">'+
+  '<stop offset="0%" stop-color="#f2e8cb"/><stop offset="70%" stop-color="#e3d3a8"/><stop offset="100%" stop-color="#c4ad7e"/></radialGradient></defs>'+
+  '<rect x="0" y="0" width="100" height="100" fill="url(#parch)"/>'+
+  '<path d="M0,10 Q15,6 30,10 T60,10 T100,10" stroke="#b08d57" fill="none" stroke-width="0.5" opacity="0.5"/>'+
+  '<path d="M0,90 Q20,86 40,90 T80,90 T100,90" stroke="#7a9a6a" fill="none" stroke-width="1" opacity="0.45"/>'+
+  '<ellipse cx="18" cy="68" rx="13" ry="7" fill="#c9b586" opacity="0.45"/>'+
+  '<ellipse cx="74" cy="58" rx="9" ry="5" fill="#c9b586" opacity="0.45"/>'+
+  '<path d="M30,78 q2.5,-3.5 5,0 q2.5,3.5 5,0" stroke="#7a9a6a" fill="none" stroke-width="0.7" opacity="0.6"/>'+
+  '<path d="M55,12 q2.5,-3.5 5,0 q2.5,3.5 5,0" stroke="#7a9a6a" fill="none" stroke-width="0.7" opacity="0.6"/>'+
+  '<circle cx="90" cy="55" r="6" fill="none" stroke="#b08d57" stroke-width="0.5" opacity="0.5"/>'+
+  '<circle cx="90" cy="55" r="3.5" fill="none" stroke="#b08d57" stroke-width="0.5" opacity="0.5"/>'+
+  '</svg>';
+}
+function nodeIcon(n){
+  if(n.kind==='gather') return RES_ICON[n.res];
+  if(n.kind==='camp') return 'fire';
+  if(n.kind==='city') return 'city';
+  if(n.kind==='boss') return 'skull';
+  return 'ruin';
+}
+function renderMap(){
+  let html='';
+  if(S.marches.length){
+    html+='<h2 class="sec">Marches ('+S.marches.length+'/2)</h2>';
+    for(const m of S.marches){
+      const node=NODE_BY_ID[m.nodeId];
+      let status='';
+      if(m.phase==='out') status='arrives in '+fmtT((m.arriveAt-nowMs())/1000);
+      else if(m.phase==='gather') status='gathering — '+fmtT((m.gatherAt-nowMs())/1000);
+      else status='returning — '+fmtT((m.returnAt-nowMs())/1000);
+      const tstr=TROOP_ORDER.filter(t=>m.troops[t]>0).map(t=>m.troops[t]+' '+TROOPS[t].name).join(', ');
+      html+='<div class="marchbar">'+icon('pin')+' '+esc(tstr)+(m.hero?' + Theron':'')+' → '+esc(node.name)+
+            '<br><span style="color:var(--bronze-l)">'+status+'</span></div>';
+    }
+  }
+  html+='<h2 class="sec">The World</h2><div id="mapwrap">'+mapBG();
+  for(const n of NODES){
+    const cleared=S.nodes[n.id]&&S.nodes[n.id].cleared;
+    html+='<button class="mnode '+n.kind+(cleared?' done':'')+'" style="left:'+n.x+'%;top:'+n.y+'%" onclick="Game.openNode(\''+n.id+'\')">'+
+      '<span class="mn-ic">'+icon(nodeIcon(n))+'</span>'+
+      (n.tier?'<span class="mn-tier">'+n.tier+'</span>':'')+
+      '<span class="mn-lb">'+esc(n.name)+'</span></button>';
+  }
+  html+='<div id="home-marker" style="left:47%;top:41%"><div class="troy">⚔ TROY ⚔</div></div>';
+  html+='</div><div class="small" style="margin-top:6px">Tap a site to gather, raid a camp, or conquer a city. Destroy the <b>Bastion of Warlord Skaros</b> to win the game.</div>';
+  $('#view-map').innerHTML=html;
+}
+
+function renderArmy(){
+  let html='<h2 class="sec">Your Army</h2>';
+  html+='<div class="card center"><div style="font-size:15px">'+
+    TROOP_ORDER.map(t=>icon(TROOPS[t].ic)+' <b>'+troopCount(t)+'</b>').join(' &nbsp; ')+'</div>'+
+    '<div class="small">Total '+armyTotal()+' troops · Power '+fmtN(armyPower())+
+    (S.hero.away?' · '+HEROES[S.hero.active].name+' is away':'')+'</div></div>';
+  if(S.tqueue.length){
+    const b=S.tqueue[0];
+    const totalQ=S.tqueue.reduce((s,x)=>s+x.left,0);
+    const left=(b.unitDoneAt-nowMs())/1000;
+    const pct=Math.min(100,Math.max(0,100*(1-left/b.unitTime)));
+    html+='<div class="card"><div class="bld-name">Training…</div>'+
+      '<div class="small">'+totalQ+' in queue · now: '+TROOPS[b.type].name+' ('+fmtT(left)+' left)</div>'+
+      '<div class="prog"><div style="width:'+pct+'%"></div></div></div>';
+  }
+  html+='<h2 class="sec">Train Troops</h2>';
+  if((S.bld.barracks||0)===0)
+    html+='<div class="card"><div class="small">Build a Barracks in the city to train troops.</div></div>';
+  for(const t of TROOP_ORDER){
+    const T=TROOPS[t], blvl=S.bld.barracks||0, locked=blvl<T.need;
+    const n=(UI.trainDraft&&UI.trainDraft[t])||10;
+    const totCost={}; for(const k in T.cost) totCost[k]=T.cost[k]*n;
+    html+='<div class="card"><div class="bld-head"><div class="bld-icon">'+icon(T.ic)+'</div><div>'+
+      '<div class="bld-name">'+T.name+'</div>'+
+      '<div class="small">ATK '+T.atk+' · DEF '+T.def+' · HP '+T.hp+' · '+T.vsText+'</div>'+
+      '<div class="costline">'+costText(T.cost)+' each · '+T.time+'s each</div></div></div>';
+    if(locked) html+='<div class="small">Requires Barracks Lv '+T.need+'.</div>';
+    else html+='<div class="stepper"><button onclick="Game.trainAdj(\''+t+'\',-5)">−</button>'+
+      '<span class="val">'+n+'</span><button onclick="Game.trainAdj(\''+t+'\',5)">+</button>'+
+      '<button class="btn small" '+(canAfford(totCost)?'':'disabled')+' onclick="Game.train(\''+t+'\')">Train ('+fmtT(n*trainTime(t))+')</button></div>'+
+      '<div class="costline">Batch cost: '+costText(totCost)+'</div>';
+    html+='</div>';
+  }
+  // Practice spar: zero-stakes composition testing against your own garrison
+  const pr=UI.practice||(UI.practice={troops:{spearman:5,archer:5,cavalry:5},preset:'mirror'});
+  const totA=TROOP_ORDER.reduce((s,t)=>s+Math.min(pr.troops[t]||0,troopCount(t)),0);
+  html+='<h2 class="sec">\u2694 Practice Spar</h2><div class="card">'+
+    '<div class="small" style="margin-bottom:8px">Test a composition against your own garrison or a preset — no troops lost, no loot, no XP. Pure strategy.</div>';
+  for(const t of TROOP_ORDER){
+    const av=troopCount(t);
+    html+='<div class="stepper"><span style="width:118px;font-size:13px">'+icon(TROOPS[t].ic)+' '+TROOPS[t].name+' <span class="small">('+av+')</span></span>'+
+      '<button onclick="Game.practiceAdj(\''+t+'\',-5)">\u2212</button><span class="val">'+(pr.troops[t]||0)+'</span>'+
+      '<button onclick="Game.practiceAdj(\''+t+'\',5)">+</button>'+
+      '<button class="btn small ghost" onclick="Game.practiceMax(\''+t+'\')">Max</button></div>';
+  }
+  html+='<div class="small" style="margin:8px 0 4px">Opponent:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+  for(const ps of PRACTICE_PRESETS){
+    html+='<button class="btn small'+(pr.preset===ps.id?'':' ghost')+'" title="'+esc(ps.desc)+'" onclick="Game.practicePreset(\''+ps.id+'\')">'+esc(ps.name)+'</button>';
+  }
+  html+='</div><button class="btn red" '+(totA<=0?'disabled':'')+' onclick="Game.runPractice()">Begin Spar ('+totA+' troops)</button></div>';
+  $('#view-army').innerHTML=html;
+}
+
+function heroXpIntoLevel(id){
+  const h=(S.heroes&&S.heroes[id])||{xp:0};
+  let xp=h.xp, l=1;
+  while(l<heroLevel(id)){ xp-=heroXpNeed(l); l++; }
+  return xp;
+}
+function renderHero(){
+  const aid = activeHero(), H = HEROES[aid], lvl = heroLevel(aid);
+  const xp = heroXpIntoLevel(aid), need = heroXpNeed(lvl);
+  const pct = lvl>=HERO_MAX_LEVEL?100:Math.min(100,100*xp/need);
+  let html='<h2 class="sec">Heroes of Troy</h2>'+
+    '<div class="card center"><div class="hero-portrait">'+icon(H.ic)+'</div>'+
+    '<div class="bld-name" style="font-size:19px">'+esc(H.name)+', '+esc(H.title)+'</div>'+
+    '<div class="bld-desc">Level '+lvl+'/'+HERO_MAX_LEVEL+(S.hero.away?' · <b>ON MARCH</b>':' · in Troy')+'</div>'+
+    '<div class="xpbar"><div style="width:'+pct+'%"></div></div>'+
+    '<div class="small">'+(lvl>=HERO_MAX_LEVEL?'Max level':fmtN(xp)+' / '+fmtN(need)+' XP to Lv '+(lvl+1))+'</div>'+
+    '<div class="small" style="font-style:italic;margin-top:6px">\u201C'+esc(H.quote)+'\u201D</div></div>';
+  html+='<div class="card"><div class="bld-name">Abilities</div>';
+  for(const a of H.abilities){
+    const un=lvl>=a.lvl;
+    html+='<div class="ability'+(un?' unlocked':'')+'"><div class="an">'+esc(a.name)+'</div><div class="small">'+esc(a.desc)+'</div>'+
+      (un?'':'<div class="lock">Unlocks at hero level '+a.lvl+'</div>')+'</div>';
+  }
+  html+='<div class="small" style="font-style:italic;margin-top:6px">'+esc(H.story)+'</div></div>';
+  html+='<h2 class="sec">Roster</h2><div class="card">';
+  for(const id of HERO_ORDER){
+    const h=HEROES[id], unlocked=S.hero.unlocked.includes(id), isActive=id===aid;
+    html+='<div class="hrow"><div class="hport">'+icon(h.ic)+'</div><div style="flex:1">'+
+      '<div class="bld-name" style="font-size:14px">'+esc(h.name)+' <span class="small">'+esc(h.title)+'</span></div>';
+    if(unlocked){
+      html+='<div class="small">Level '+heroLevel(id)+'/'+HERO_MAX_LEVEL+(isActive?' · <b>ACTIVE</b>':'')+'</div></div>'+
+        (isActive?'<span class="small" style="color:#6a8f3c">'+icon('check')+'</span>'
+                 :'<button class="btn small" '+(S.hero.away?'disabled':'')+' onclick="Game.selectHero(\''+id+'\')">Select</button>');
+    } else {
+      html+='<div class="lock">'+icon('shield')+' '+esc(h.unlock)+'</div></div>';
+    }
+    html+='</div>';
+  }
+  html+='</div><div class="small" style="margin:0 2px 8px">Only the active hero grants abilities and earns XP. Assign them to a march from the world map.</div>';
+  // Titles section
+  const earned = ACHIEVEMENTS.filter(a=>S.achv&&S.achv[a.id]);
+  html+='<h2 class="sec">Titles ('+earned.length+'/'+ACHIEVEMENTS.length+')</h2><div class="card">';
+  if(!earned.length) html+='<div class="small">No titles yet. Win battles, build, explore — glory earns names.</div>';
+  for(const a of earned){
+    const eq = S.title===a.id;
+    html+='<div class="hrow"><div style="flex:1"><div class="bld-name" style="font-size:14px">'+esc(a.title)+'</div>'+
+      '<div class="small">'+esc(a.name)+' — '+esc(a.desc)+'</div></div>'+
+      (eq?'<span class="small" style="color:var(--gold)">'+icon('check')+' Worn</span>'
+         :'<button class="btn small" onclick="Game.setTitle(\''+a.id+'\')">Wear</button>')+'</div>';
+  }
+  if(S.title) html+='<button class="btn small ghost" style="margin-top:6px" onclick="Game.setTitle(\'\')">Remove title</button>';
+  html+='</div>';
+  // Relics section
+  const owned = RELIC_ORDER.filter(hasRelic);
+  html+='<h2 class="sec">Relics of Troy ('+owned.length+'/'+RELIC_ORDER.length+')</h2><div class="card"><div class="rgrid">';
+  for(const rid of RELIC_ORDER){
+    const R=RELICS[rid], got=hasRelic(rid);
+    html+='<div class="relic'+(got?' got':'')+'" title="'+esc(R.name+(got?': '+R.desc:''))+'"><div class="relic-ic">'+icon(got?R.ic:'shield')+'</div>'+
+      '<div class="relic-nm">'+(got?esc(R.name):'?')+'</div></div>';
+  }
+  html+='</div>';
+  if(owned.length){
+    html+=owned.map(rid=>'<div class="small" style="margin-top:6px">'+icon(RELICS[rid].ic)+' <b>'+esc(RELICS[rid].name)+'</b> — '+esc(RELICS[rid].desc)+' <span style="font-style:italic">“'+esc(RELICS[rid].flavor)+'”</span></div>').join('');
+  } else {
+    html+='<div class="small" style="margin-top:6px">No relics yet. Clear the ruins on the world map — each hides a unique relic.</div>';
+  }
+  html+='</div>';
+  $('#view-hero').innerHTML=html;
+}
+
+function renderQuests(){
+  let html='<h2 class="sec">Quests</h2>';
+  QUESTS.forEach((q,i)=>{
+    const st=questState(q);
+    let rw='';
+    if(q.reward) rw=Object.keys(q.reward).map(k=>k==='heroxp'?q.reward[k]+' hero XP':'+'+q.reward[k]+' '+RES_NAME[k]).join(', ');
+    html+='<div class="card qrow '+st+'"><div class="qnum">'+(st==='done'?'✓':(i+1))+'</div><div style="flex:1">'+
+      '<div class="bld-name">'+esc(q.name)+'</div><div class="small">'+esc(q.desc)+'</div>'+
+      (rw?'<div class="costline">Reward: '+rw+' · +'+XP_QUEST+' player XP</div>':'<div class="costline">Reward: +'+XP_QUEST+' player XP · <b>VICTORY</b></div>')+
+      (st==='claimable'?'<button class="btn small" onclick="Game.claim(\''+q.id+'\')">Claim</button>':
+       st==='done'?'<div class="small" style="color:#6a8f3c">Claimed</div>':
+       st==='locked'?'<div class="small">Complete the previous quest first.</div>':'<div class="small">In progress…</div>')+
+      '</div></div>';
+  });
+  $('#view-quests').innerHTML=html+renderChronicle()+renderLeaderboards();
+}
+
+function render(){
+  applySkin();
+  renderHeader(); renderHint(); renderTabs();
+  const views=['city','map','army','hero','quests'];
+  for(const v of views) $('#view-'+v).classList.toggle('active', UI.tab===v);
+  if(UI.tab==='city') renderCity();
+  else if(UI.tab==='map') renderMap();
+  else if(UI.tab==='army') renderArmy();
+  else if(UI.tab==='hero') renderHero();
+  else if(UI.tab==='quests') renderQuests();
+}
+
+/* ---------------- modal & toast ---------------- */
+function openModal(html){ $('#modal').innerHTML=html; $('#modal-root').classList.add('open'); }
+function closeModal(){ $('#modal-root').classList.remove('open'); }
+function toast(msg){
+  const root=$('#toast-root');
+  const el=document.createElement('div'); el.className='toast'; el.innerHTML=msg;
+  root.appendChild(el);
+  while(root.children.length>3) root.firstChild.remove();
+  setTimeout(()=>{ el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, 3200);
+}
+
+function openNode(id){
+  const n=NODE_BY_ID[id], cleared=S.nodes[id]&&S.nodes[id].cleared;
+  let body='';
+  if(n.kind==='gather'){
+    body='<div class="flavor">'+esc(n.flavor)+'</div>'+
+      '<div class="small">Send troops to gather <b>'+RES_NAME[n.res]+'</b>: +'+GATHER_YIELD+' per troop per trip.<br>'+
+      'Time on site: '+GATHER_TIME+'s · march '+fmtT(n.march)+' each way.</div><br>'+
+      '<button class="btn" onclick="Game.openComposer(\''+id+'\')">Send Gatherers</button>';
+  } else {
+    const g=n.garrison;
+    const rec=S.nodes[id]||{};
+    const scouted=!!rec.scouted;
+    const gstr=TROOP_ORDER.filter(t=>g[t]>0).map(t=>g[t]+' '+TROOPS[t].name).join(', ');
+    let scoutHtml='';
+    if(!cleared){
+      if(scouted) scoutHtml='';
+      else if(rec.scoutDoneAt) scoutHtml='<div class="small">'+icon('clock')+' Scouts en route — report in '+fmtT((rec.scoutDoneAt-nowMs())/1000)+'.</div>';
+      else scoutHtml='<button class="btn small" '+(S.res.gold<25?'disabled':'')+' onclick="Game.sendScout(\''+id+'\')">\uD83D\uDD75 Send Scout (25 gold)</button> ';
+    }
+    body='<div class="flavor">'+esc(n.flavor)+'</div>'+
+      (n.tier?'<div class="small">Threat tier '+n.tier+' of 5</div>':'')+
+      (n.kind==='boss'?'<div class="winbanner" style="color:var(--red)">☠ FINAL BATTLE ☠</div>':'')+
+      (n.kind==='ruin'&&RUIN_RELIC[id]&&!hasRelic(RUIN_RELIC[id])?'<div class="small">\uD83C\uDFFA <i>Rumor: an ancient relic lies within…</i></div>':'')+
+      '<div class="small" style="margin:6px 0"><b>Garrison:</b> '+(scouted?esc(gstr)+(n.wallMult?' (fortified ×'+n.wallMult+')':''):'<i>Unknown</i> — send scouts to reveal.')+'</div>'+
+      (!cleared&&n.loot?'<div class="small"><b>Loot:</b> '+Object.keys(n.loot).map(k=>'+'+fmtN(n.loot[k])+' '+RES_NAME[k]).join(', ')+'</div><br>':'')+
+      (cleared?'<div class="small" style="color:#6a8f3c">'+icon('check')+' Conquered.</div>'
+              :scoutHtml+'<button class="btn red" onclick="Game.openComposer(\''+id+'\')">Attack</button>');
+  }
+  openModal('<h3>'+icon(nodeIcon(n))+' '+esc(n.name)+'</h3>'+body+
+    '<br><button class="btn ghost small" onclick="Game.closeModal()">Close</button>');
+}
+
+function openComposer(id){
+  UI.draft={nodeId:id, troops:{spearman:0,archer:0,cavalry:0}, hero:heroHome()?activeHero():null};
+  renderComposer();
+}
+function renderComposer(){
+  const d=UI.draft; if(!d) return;
+  const n=NODE_BY_ID[d.nodeId];
+  const hname = d.hero?HEROES[d.hero].name:'';
+  let secs=n.march; if(d.hero) secs=Math.round(secs*heroMarchMult(d.hero, heroLevel(d.hero)));
+  let html='<h3>March to '+esc(n.name)+'</h3>'+
+    '<div class="small">March '+fmtT(secs)+' each way'+(d.hero&&heroMarchMult(d.hero,heroLevel(d.hero))<1?' ('+esc(HEROES[d.hero].abilities[0].name)+')':'')+'. Max 2 marches at once.</div><hr class="bronze">';
+  for(const t of TROOP_ORDER){
+    const av=troopCount(t);
+    html+='<div class="stepper"><span style="width:118px;font-size:13px">'+icon(TROOPS[t].ic)+' '+TROOPS[t].name+' <span class="small">('+av+')</span></span>'+
+      '<button onclick="Game.draftAdj(\''+t+'\',-1)">−</button><span class="val">'+d.troops[t]+'</span>'+
+      '<button onclick="Game.draftAdj(\''+t+'\',1)">+</button>'+
+      '<button class="btn small ghost" onclick="Game.draftMax(\''+t+'\')">Max</button></div>';
+  }
+  const heroBtn = heroHome()||d.hero
+    ? '<button class="btn small'+(d.hero?'':' ghost')+'" onclick="Game.draftHero()">'+(d.hero?'✓ '+esc(hname)+' (Lv '+heroLevel(d.hero)+')':'No hero')+'</button>'
+    : '<button class="btn small ghost" disabled>'+esc(HEROES[activeHero()].name)+' is away</button>';
+  html+='<div class="stepper">'+heroBtn+'<span class="small">Hero bonuses apply only if he marches.</span></div>';
+  const total=TROOP_ORDER.reduce((s,t)=>s+d.troops[t],0);
+  html+='<button class="btn red" '+(total<=0?'disabled':'')+' onclick="Game.sendDraft()">Send March ('+total+')</button> '+
+    '<button class="btn ghost small" onclick="Game.closeModal()">Cancel</button>';
+  openModal(html);
+}
+
+function lossRow(L){
+  return TROOP_ORDER.filter(t=>L[t]>0).map(t=>L[t]+' '+TROOPS[t].name).join(', ')||'none';
+}
+function battleReportModal(res){
+  const r=res.report;
+  LASTW={kind:'battle', res:res, atkLabel:'Your Army', defLabel:res.nodeName+' (Enemy)'};
+  let lootHtml='';
+  if(res.won && res.loot && Object.keys(res.loot).length)
+    lootHtml='<tr><th>Loot</th><td>'+Object.keys(res.loot).map(k=>'+'+fmtN(res.loot[k])+' '+RES_NAME[k]).join(', ')+'</td></tr>';
+  openModal('<div class="winbanner" style="color:'+(res.won?'#4a6a28':'var(--red)')+'">'+(res.won?'⚔ VICTORY ⚔':'☠ DEFEAT ☠')+'</div>'+
+    '<h3 class="center">'+esc(res.nodeName)+'</h3>'+
+    '<div class="small center">The battle lasted '+r.rounds+' rounds.</div>'+
+    '<table class="rep"><tr><th>Your losses</th><td>'+lossRow(r.atkLost)+'</td></tr>'+
+    '<tr><th>Enemy losses</th><td>'+lossRow(r.defLost)+'</td></tr>'+lootHtml+
+    (res.won?'<tr><th>Rewards</th><td>+'+XP_BATTLE_WIN+' player XP'+(res.heroXp?' · +'+res.heroXp+' hero XP':'')+'</td></tr>':'')+
+    (res.relic?'<tr><th>\uD83C\uDFFA Relic</th><td><b>'+esc(RELICS[res.relic].name)+'</b> — '+esc(RELICS[res.relic].desc)+'</td></tr>':'')+
+    '</table>'+
+    (res.won?'':'<div class="small">Tip: send scouts (25 gold) to reveal the garrison, then bring troops that counter it (Spearmen \u261E Cavalry, Archers \u261E Spearmen, Cavalry \u261E Archers).</div><br>')+
+    '<div class="center"><button class="btn" onclick="Game.watchBattle()">⚔ Watch Battle</button> '+
+    '<button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+}
+function raidModal(msg){
+  const r=msg.report;
+  LASTW={kind:'raid', res:msg, atkLabel:'Warband Raiders', defLabel:'Troy (Your Army)'};
+  openModal('<div class="winbanner" style="color:'+(msg.won?'#4a6a28':'var(--red)')+'">'+esc(msg.title)+'</div>'+
+    '<div class="flavor">'+esc(msg.text)+'</div>'+
+    '<table class="rep"><tr><th>Raiders lost</th><td>'+lossRow(r.atkLost)+'</td></tr>'+
+    '<tr><th>Your losses</th><td>'+lossRow(r.defLost)+'</td></tr>'+
+    (msg.militia?'<tr><th>Militia (Walls)</th><td>'+msg.militia+' townsfolk fought beside your troops</td></tr>':'')+
+    (msg.loss?'<tr><th>Plundered</th><td>'+Object.keys(msg.loss).filter(k=>msg.loss[k]>0).map(k=>'-'+fmtN(msg.loss[k])+' '+RES_NAME[k]).join(', ')+'</td></tr>':'')+
+    '</table><div class="center"><button class="btn" onclick="Game.watchBattle()">⚔ Watch Battle</button> '+
+    '<button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+}
+/* ---------------- battle replay viewer ----------------
+   Replays the per-round frames recorded by simBattle — no re-simulation,
+   so the replay matches the report's outcome and losses exactly. */
+const WATCH={active:false,pack:null,i:0,playing:false,speed:1,timer:null};
+let LASTW=null;   // {kind:'battle'|'raid', res, atkLabel, defLabel} for the report on screen
+function stopWatch(){ if(WATCH.timer){ clearInterval(WATCH.timer); WATCH.timer=null; } WATCH.playing=false; }
+function watchSpeedMs(){ return WATCH.speed===4?220 : WATCH.speed===2?430 : 850; }
+function wrRow(side,t){
+  return '<div class="wr-row">'+icon(TROOPS[t].ic)+'<span class="wr-count" id="wr-'+side+'-'+t+'">0</span>'+
+    '<div class="wr-hp"><div id="wr-'+side+'-'+t+'-bar"></div></div></div>';
+}
+function paintWatchFrame(f, f0){
+  for(const t of TROOP_ORDER){
+    $('#wr-a-'+t).textContent=Math.floor(f.a[t]);
+    $('#wr-d-'+t).textContent=Math.floor(f.d[t]);
+    const fa=f0.hpA>0?Math.max(0,Math.min(1,f.hpA/f0.hpA)):0;
+    const fd=f0.hpD>0?Math.max(0,Math.min(1,f.hpD/f0.hpD)):0;
+    $('#wr-a-'+t+'-bar').style.width=(fa*100)+'%';
+    $('#wr-d-'+t+'-bar').style.width=(fd*100)+'%';
+  }
+  const rl=$('#wr-round'); if(rl) rl.textContent=WATCH.i;
+}
+function watchClash(ids){
+  for(const id of ids){
+    const el=$(id); if(!el) continue;
+    el.classList.remove('hit','flash'); void el.offsetWidth; el.classList.add(id==='#wr-clash'?'hit':'flash');
+  }
+}
+function watchBattleModal(pack){
+  const r=pack.res.report;
+  const frames=(r&&r.replay)||[];
+  stopWatch();
+  WATCH.active=true; WATCH.pack=pack; WATCH.i=0; WATCH.speed=1;
+  if(!frames.length){
+    openModal('<div class="winbanner" style="color:var(--red-d)">⚔ BATTLE REPLAY ⚔</div>'+
+      '<div class="small center">No replay was recorded for this battle.</div><br>'+
+      '<div class="center"><button class="btn" onclick="Game.backToReport()">Back to Report</button></div>');
+    return;
+  }
+  const rowsA=TROOP_ORDER.map(t=>wrRow('a',t)).join('');
+  const rowsD=TROOP_ORDER.map(t=>wrRow('d',t)).join('');
+  openModal('<div class="winbanner" style="color:var(--red-d)">⚔ BATTLE REPLAY ⚔</div>'+
+    '<div class="small center">Round <b id="wr-round">0</b> / '+r.rounds+'</div>'+
+    '<div class="wr-field">'+
+      '<div class="wr-side atk" id="wr-side-a"><div class="wr-name">'+esc(pack.atkLabel)+'</div>'+rowsA+'</div>'+
+      '<div class="wr-mid"><div id="wr-clash">⚔️</div></div>'+
+      '<div class="wr-side def" id="wr-side-d"><div class="wr-name">'+esc(pack.defLabel)+'</div>'+rowsD+'</div>'+
+    '</div>'+
+    '<div class="wr-controls">'+
+      '<button class="btn" id="wr-play" onclick="Game.watchToggle()">▶ Play</button>'+
+      '<button class="btn" id="wr-speed" onclick="Game.watchSpeed()">1×</button>'+
+      '<button class="btn" onclick="Game.watchSkip()">⏩ Result</button>'+
+    '</div>'+
+    '<div id="wr-result"></div>'+
+    '<div class="center"><button class="btn" onclick="Game.backToReport()">Back to Report</button></div>');
+  paintWatchFrame(frames[0], frames[0]);
+}
+function watchAdvance(){
+  const frames=WATCH.pack.res.report.replay;
+  if(WATCH.i>=frames.length-1){ watchFinish(); return; }
+  const prev=frames[WATCH.i];
+  WATCH.i++;
+  const cur=frames[WATCH.i];
+  paintWatchFrame(cur, frames[0]);
+  watchClash(['#wr-clash']);
+  if(cur.hpA<prev.hpA-1e-9) watchClash(['#wr-side-a']);
+  if(cur.hpD<prev.hpD-1e-9) watchClash(['#wr-side-d']);
+}
+function watchFinish(){
+  const frames=WATCH.pack.res.report.replay;
+  WATCH.i=frames.length-1;
+  paintWatchFrame(frames[WATCH.i], frames[0]);
+  stopWatch();
+  const pb=$('#wr-play'); if(pb) pb.textContent='▶ Play';
+  const won=WATCH.pack.res.won;
+  const rr=$('#wr-result');
+  if(rr) rr.innerHTML='<div style="color:'+(won?'#4a6a28':'var(--red)')+';font-size:17px;letter-spacing:1px">'+(won?'⚔ VICTORY ⚔':'☠ DEFEAT ☠')+'</div>'+
+    '<div class="small">Final losses match the battle report exactly.</div>';
+}
+function watchToggle(){
+  const frames=WATCH.pack.res.report.replay;
+  const pb=$('#wr-play');
+  if(WATCH.playing){ stopWatch(); if(pb) pb.textContent='▶ Play'; return; }
+  if(WATCH.i>=frames.length-1){ WATCH.i=0; paintWatchFrame(frames[0],frames[0]); const rr=$('#wr-result'); if(rr) rr.innerHTML=''; }
+  WATCH.playing=true; if(pb) pb.textContent='⏸ Pause';
+  WATCH.timer=setInterval(watchAdvance, watchSpeedMs());
+}
+function watchSpeedCycle(){
+  WATCH.speed = WATCH.speed===1?2 : WATCH.speed===2?4 : 1;
+  const sb=$('#wr-speed'); if(sb) sb.textContent=WATCH.speed+'×';
+  if(WATCH.playing){ clearInterval(WATCH.timer); WATCH.timer=setInterval(watchAdvance, watchSpeedMs()); }
+}
+function backToReport(){
+  stopWatch(); WATCH.active=false;
+  const p=LASTW; if(!p){ closeModal(); return; }
+  if(p.kind==='raid') raidModal(p.res); else if(p.kind==='practice') practiceReportModal(p.res); else battleReportModal(p.res);
+}
+function welcomeModal(){
+  openModal('<div class="winbanner" style="color:var(--red-d)">TROY</div>'+
+    '<div class="flavor">The old city is dust and song. The gods have gone quiet. But on a hill above the wine-dark sea, one commander still believes a city can rise again — yours.</div>'+
+    '<div class="small">You are <b>Theron, Warden of the Bronze Gate</b>, and the scattered people look to you. Build Troy. Raise an army. Break Warlord Skaros.<br><br>Follow the quests at the top of the city view — they will teach you building, gathering, training, and war.</div><br>'+
+    '<div class="center"><button class="btn" onclick="Game.closeModal()">⚔ Raise the Banner</button></div>');
+}
+function victoryModal(){
+  const days=((nowMs()-S.createdAt)/86400000);
+  openModal('<div class="winbanner" style="color:var(--gold);text-shadow:0 2px 0 #000">🏛 TRIUMPH 🏛</div>'+
+    '<div class="flavor">Skaros the Render lies broken before the Bronze Gate. From the hills to the sea, every banner now bows toward one city — <b>Troy</b>. The bards will sing of Theron for a thousand years, and the wine will flow tonight.</div>'+
+    '<table class="rep"><tr><th>Days ruled</th><td>'+days.toFixed(1)+'</td></tr>'+
+    '<tr><th>Player level</th><td>Lv '+S.player.level+'</td></tr>'+
+    '<tr><th>Troops trained</th><td>'+fmtN(S.stats.trained)+'</td></tr>'+
+    '<tr><th>Battles won</th><td>'+S.stats.wins+' of '+S.stats.battles+'</td></tr>'+
+    '<tr><th>Raids repelled</th><td>'+S.stats.raidsRepelled+'</td></tr></table>'+
+    '<div class="center"><button class="btn" onclick="Game.closeModal()">Rule On (sandbox)</button></div>');
+}
+function awayModal(info){
+  openModal('<h3>While you were away…</h3><div class="small">Gone '+fmtT(info.elapsed)+' — your city kept working (up to 8h).</div><hr class="bronze">'+
+    (info.events.length?'<ul class="small">'+info.events.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>':'<div class="small">All quiet on the walls.</div>')+
+    '<br><div class="center"><button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+}
+
+/* ---------------- public API (inline onclick handlers) ---------------- */
+const Game={
+  tab(t){ UI.tab=t; render(); },
+  build(key){ startBuild(key); },
+  trainAdj(t,d){ UI.trainDraft=UI.trainDraft||{spearman:10,archer:10,cavalry:10};
+    UI.trainDraft[t]=Math.max(5,Math.min(50,(UI.trainDraft[t]||10)+d)); render(); },
+  train(t){ const n=(UI.trainDraft&&UI.trainDraft[t])||10; queueTrain(t,n); },
+  practiceAdj(t,d){ UI.practice=UI.practice||{troops:{spearman:5,archer:5,cavalry:5},preset:'mirror'};
+    UI.practice.troops[t]=Math.max(0,Math.min(troopCount(t),(UI.practice.troops[t]||0)+d)); render(); },
+  practiceMax(t){ if(UI.practice){ UI.practice.troops[t]=troopCount(t); render(); } },
+  practicePreset(id){ if(UI.practice && PRACTICE_PRESETS.some(p=>p.id===id)){ UI.practice.preset=id; render(); } },
+  runPractice(){ runPractice(); },
+  openNode(id){ openNode(id); },
+  openComposer(id){ openComposer(id); },
+  selectHero(id){ selectHero(id); },
+  sendScout(id){ sendScout(id); },
+  draftAdj(t,d){ const dr=UI.draft; if(!dr) return;
+    dr.troops[t]=Math.max(0,Math.min(troopCount(t),dr.troops[t]+d)); renderComposer(); },
+  draftMax(t){ if(UI.draft){ UI.draft.troops[t]=troopCount(t); renderComposer(); } },
+  draftHero(){ if(UI.draft&&(heroHome()||UI.draft.hero)){ UI.draft.hero=UI.draft.hero?null:activeHero(); renderComposer(); } },
+  sendDraft(){ const d=UI.draft; if(d) sendMarch(d.nodeId,d.troops,d.hero); },
+  claim(id){ claimQuest(id); },
+  watchBattle(){ if(LASTW) watchBattleModal(LASTW); },
+  watchToggle(){ watchToggle(); },
+  watchSpeed(){ watchSpeedCycle(); },
+  watchSkip(){ watchSkip(); },
+  backToReport(){ backToReport(); },
+  closeModal(){ closeModal(); },
+  enterTitle(){ const t=$('#titlescreen'); if(t) t.style.display='none'; },
+  setSkin(id){ setSkin(id); },
+  setTitle(id){ setTitle(id); },
+  equipTitle(id){ setTitle(id); closeModal(); }
+};
+window.Game=Game;
+
+/* ---------------- main loop & init ---------------- */
+let saveCounter=0;
+function tick(){
+  if(!S) return;
+  produce(1);
+  if(S.build && nowMs()>=S.build.doneAt) completeBuild();
+  tickTraining();
+  tickEvents();
+  tickScouts();
+  checkHeroUnlocks();
+  const reports=tickMarches(false);
+  if(reports.length){
+    for(let i=0;i<reports.length-1;i++) toast((reports[i].won?'Victory':'Defeat')+' at '+reports[i].nodeName);
+    battleReportModal(reports[reports.length-1]);
+  }
+  const raidMsg=tickRaid(false);
+  if(raidMsg && !raidMsg.warn) raidModal(raidMsg);
+  if(S.victory && !S.victoryShown){ S.victoryShown=true; victoryModal(); save(); }
+  checkAchv();
+  drainAchvModals();
+  updatePowerRecord();
+  if(++saveCounter>=5){ saveCounter=0; save(); }
+  render();
+}
+function init(){
+  const loaded=load();
+  S = loaded || defaultState();
+  UI.trainDraft={spearman:10,archer:10,cavalry:10};
+  UI.practice={troops:{spearman:5,archer:5,cavalry:5},preset:'mirror'};
+  if(!loaded){
+    const d0=dailyLogin();           // Day-1 tribute for a new reign
+    chronicle('Troy founded on the hill above the wine-dark sea.', S.createdAt);
+    save(); render();
+    S.seenWelcome=true; save();
+    welcomeModal();
+    if(d0) setTimeout(()=>toast('🎁 Daily Tribute (Day 1) claimed: '+esc(d0.desc)), 900);
+  } else {
+    const info=applyOffline();
+    if(!S.chronicle.length) chronicle('The chronicles of Troy begin.', S.createdAt);
+    render();
+    const d=dailyLogin();
+    if(d) dailyTributeModal(d, info);
+    else if(info.events.length>0) awayModal(info);
+  }
+  setInterval(tick,1000);
+  window.addEventListener('pagehide', save);
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) save(); });
+  $('#modal-root').addEventListener('click', e=>{ if(e.target.id==='modal-root'){ if(WATCH.active) backToReport(); else closeModal(); } });
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
