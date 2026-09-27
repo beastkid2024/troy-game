@@ -107,6 +107,36 @@ h2.sec{font-size:16px;letter-spacing:2px;color:var(--red-d);border-bottom:2px so
   text-shadow:0 1px 0 #fff,0 0 6px #fff}
 .marchbar{background:#2c1f0e;border:1px solid var(--bronze);border-radius:8px;color:#ffe9c9;
   font-size:12px;font-family:Arial,sans-serif;padding:8px 10px;margin-bottom:8px}
+/* ---------- world map (canvas) ---------- */
+body.on-map #resbar{display:none} /* map tab has its own slim resource bar */
+#wm-head{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+#wm-kname{flex:1;min-width:0;background:#2c1f0e;border:1px solid var(--bronze);border-radius:8px;
+  color:#ffe9c9;font-family:Georgia,serif;font-size:14px;padding:7px 10px}
+#wm-zoomrow{display:flex;gap:6px}
+.wm-zbtn{width:38px;height:38px;border-radius:10px;border:2px solid var(--bronze-d);background:#3a2a12;
+  color:#ffe9c9;font-size:18px;font-weight:bold;cursor:pointer;flex:none}
+.wm-zbtn:active{background:#5a421e}
+#worldmap{width:100%;height:470px;display:block;border:3px solid var(--bronze-d);border-radius:12px;
+  background:#274a28;touch-action:none;cursor:grab}
+#worldmap:active{cursor:grabbing}
+#wm-feed{margin-top:6px;background:#241a0c;border:1px solid var(--bronze-d);border-radius:10px;
+  padding:7px 10px;font-family:Arial,sans-serif;font-size:11.5px;color:#d8c491;min-height:58px}
+#wm-resbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;background:rgba(20,12,6,.88);
+  border:1px solid var(--gold);border-radius:10px;padding:5px 10px;font-family:Arial,sans-serif;
+  font-size:11.5px;color:#ffe9c9}
+#wm-resbar .wm-res{display:flex;align-items:center;gap:3px}
+#wm-resbar .wm-res b{font-size:11.5px}
+#wm-resbar .wm-ric{width:20px;height:20px}
+#wm-resbar .wm-pow{margin-left:auto;color:#f0d98a;font-weight:bold;white-space:nowrap}
+#wm-resbar .wm-coords{color:#b39a63;white-space:nowrap}
+#wm-feed .wf-row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+#wm-feed .wf-row:first-child{color:#ffe9c9}
+#wm-sheet{margin-top:6px;background:#2c1f0e;border:2px solid var(--bronze);border-radius:12px;
+  padding:10px 12px;color:#ffe9c9;display:none}
+#wm-sheet.open{display:block;animation:fadein .2s}
+#wm-sheet h3{margin:0 0 2px;font-size:16px}
+#wm-sheet .small{color:#d8c491}
+#wm-sheet .wm-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 /* ---------- modal ---------- */
 #modal-root{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100;
   background:rgba(10,6,3,.72);padding:18px}
@@ -424,6 +454,968 @@ const NODES = [
     flavor:'Skaros the Render broke three cities before breakfast. End him, and Troy stands unchallenged.'}
 ];
 const NODE_BY_ID = {}; NODES.forEach(n=>NODE_BY_ID[n.id]=n);
+
+/* ================= WORLD MAP (RoK-style canvas) =================
+   Seeded world-gen + pre-rendered terrain + canvas renderer.
+   AI kingdoms register as pseudo-nodes (kind 'ak') in NODE_BY_ID,
+   so scout / march / battle / quest logic works unchanged.
+   ART DIRECTION (Charlie 2026-09-27): no emoji anywhere on the map.
+   All markers are drawn canvas art in a bronze-age palette:
+   deep bronze #8c5a2b, aged gold #c9a227, marble white #e8e0cc,
+   dark leather brown #3a2a18. Keep art in drawCityIcon/drawResIcon/
+   drawRuinIcon/drawCampIcon/drawPlaque so a later polish pass can
+   refine them in one place. */
+const WORLD=12000, WORLD_CX=6000, WORLD_CY=6000, WORLD_SEED=20260927;
+const AK_TAGS=['VKN','TRJ','ATH','SPR','MYC'];
+const TAG_COLORS={VKN:'#8fc3f0',TRJ:'#f08f8f',ATH:'#a8e6a3',SPR:'#f0d98a',MYC:'#d8a8f0'};
+const AK_NAMES=['Ajax','Helen','Hector','Achilles','Odysseus','Agamemnon','Menelaus','Paris','Priam',
+  'Cassandra','Andromache','Diomedes','Nestor','Patroclus','Briseis','Aeneas','Sarpedon','Glaucus',
+  'Memnon','Penthesilea','Iphigenia','Electra','Orestes','Leonidas','Miltiades','Themistocles',
+  'Pericles','Deiphobus','Antenor','Polydamas','Lycaon','Troilus','Euphorbus','Asteropaios',
+  'Rhesus','Cycnus','Eurypylus','Teucer','Idomeneus','Meriones','Philoctetes','Machaon'];
+const BRONZE='#8c5a2b', BRONZE_D='#5e3a1a', GOLD='#c9a227', GOLD_L='#e8c86a',
+      MARBLE='#e8e0cc', LEATHER='#3a2a18', LEATHER_L='#5a4128';
+
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function akGarrison(lvl){
+  return {spearman:Math.round(lvl*2.2), archer:Math.round(lvl*1.8), cavalry:Math.round(lvl*1.2)};
+}
+function akLoot(lvl){
+  const m=lvl*22;
+  return {food:Math.round(m*1.2), wood:Math.round(m), stone:Math.round(m*0.8), gold:Math.round(m*0.9)};
+}
+function akNodeFor(k){
+  const dist=Math.hypot(k.wx-WORLD_CX, k.wy-WORLD_CY);
+  const g=akGarrison(k.lvl);
+  return {id:k.id, kind:'ak', name:'['+k.tag+'] '+k.name, tag:k.tag, lvl:k.lvl,
+    wx:k.wx, wy:k.wy, x:k.wx/WORLD*100, y:k.wy/WORLD*100,
+    march:Math.round(30+dist/WORLD*150), garrison:g, loot:akLoot(k.lvl),
+    tier:Math.min(5,Math.ceil(k.lvl/5)), wallMult:1+k.lvl*0.008,
+    flavor:'A rival kingdom of the bronze-age world. Its banners fly high — for now.'};
+}
+function genWorld(){
+  const rnd=mulberry32(WORLD_SEED);
+  const kingdoms=[]; const used={};
+  const spots=[]; // {x,y} occupied, for min-distance checks
+  function clearOf(x,y,min){
+    for(const s of spots){ const dx=s.x-x, dy=s.y-y; if(dx*dx+dy*dy<min*min) return false; }
+    return true;
+  }
+  function place(minDist, fromCenter, margin, tries){
+    margin=margin||400; tries=tries||900;
+    for(let a=0;a<tries;a++){
+      const x=margin+rnd()*(WORLD-margin*2), y=margin+rnd()*(WORLD-margin*2);
+      if(Math.hypot(x-WORLD_CX,y-WORLD_CY)<fromCenter) continue;
+      if(!clearOf(x,y,minDist)) continue;
+      spots.push({x:x,y:y}); return {x:x,y:y};
+    }
+    return null;
+  }
+  spots.push({x:WORLD_CX,y:WORLD_CY});
+  // hand-authored NODES keep their relative spots; reserve them
+  for(const n of NODES){ const wx=n.x/100*WORLD, wy=n.y/100*WORLD; spots.push({x:wx,y:wy}); }
+  /* Clustered jittered-grid placement: each alliance holds a home region so the
+     glowing territory borders have real blobs to wrap around. Grid cells are
+     760px with ±30px jitter -> ~700px minimum separation, guaranteed. */
+  const ANCHORS={VKN:[2500,2500],TRJ:[9500,2500],ATH:[2500,9500],SPR:[9500,9500],MYC:[6000,1600]};
+  const CELL=760, GRIDN=15, G0=(WORLD-GRIDN*CELL)/2;
+  // near neighbors on the player's frontier (visible the moment the map opens)
+  const NBPTS=[[1,1],[1,-1],[-1,1],[-1,-1]].map(([a,b])=>({x:WORLD_CX+a*380,y:WORLD_CY+b*380}));
+  const slots=[];
+  for(let gy=0;gy<GRIDN;gy++) for(let gx=0;gx<GRIDN;gx++){
+    const sx=G0+CELL*(gx+0.5), sy=G0+CELL*(gy+0.5);
+    if(Math.hypot(sx-WORLD_CX,sy-WORLD_CY)<760) continue; // keep the player's vale clear
+    let near=false;
+    for(const q of NBPTS){ if(Math.hypot(sx-q.x,sy-q.y)<700){ near=true; break; } }
+    if(near) continue; // leave room for the near neighbors
+    slots.push({x:sx,y:sy,used:false});
+  }
+  function akName(){
+    let nm=AK_NAMES[Math.floor(rnd()*AK_NAMES.length)];
+    if(used[nm]) nm+=' '+(100+Math.floor(rnd()*900)); // collision: "Paris 456"
+    else if(rnd()<0.55) nm+=String(Math.floor(rnd()*900+100)).padStart(3,'0'); // "Achilles760"
+    used[nm]=true;
+    return nm;
+  }
+  let ni=0;
+  for(let i=0;i<200;i++){
+    const tag=AK_TAGS[i%AK_TAGS.length]; // round-robin: even alliance populations
+    const an=ANCHORS[tag];
+    let best=null, bestScore=1e18;
+    for(const s of slots){
+      if(s.used) continue;
+      const score=Math.hypot(s.x-an[0],s.y-an[1])+rnd()*900; // nearest to anchor, organic edges
+      if(score<bestScore){ bestScore=score; best=s; }
+    }
+    if(!best) break;
+    best.used=true;
+    const px=Math.round(best.x+(rnd()-0.5)*60), py=Math.round(best.y+(rnd()-0.5)*60);
+    spots.push({x:px,y:py});
+    const nm=akName();
+    const lvl=1+Math.floor(Math.pow(rnd(),2.1)*24);
+    kingdoms.push({id:'ak'+(ni++), tag:tag, name:nm, lvl:lvl,
+      power:lvl*1200+Math.floor(rnd()*900), wx:px, wy:py});
+  }
+  // four small frontier neighbors close to the player, mixed alliances
+  const NBT={ '1,1':'TRJ', '1,-1':'ATH', '-1,1':'VKN', '-1,-1':'SPR' };
+  for(const q of NBPTS){
+    const tag=NBT[[Math.sign(q.x-WORLD_CX),Math.sign(q.y-WORLD_CY)].join(',')];
+    const lvl=1+Math.floor(rnd()*4);
+    const nm=akName();
+    kingdoms.push({id:'ak'+(ni++), tag:tag, name:nm, lvl:lvl,
+      power:lvl*1200+Math.floor(rnd()*900), wx:Math.round(q.x), wy:Math.round(q.y)});
+    spots.push({x:q.x,y:q.y});
+  }
+  // extra resource nodes, ruin camps, barbarian camps (seeded, stable)
+  const extra=[];
+  const RES4=['food','wood','stone','gold'];
+  const rflav={food:'Wild grain ripe for the taking.',wood:'Tall cedars, free for the cutting.',
+    stone:'Pale stone jutting from the earth.',gold:'A glint of sun-gold in the rock.'};
+  for(let i=0;i<12;i++){
+    const p=place(380, 500); if(!p) break;
+    const res=RES4[i%4];
+    extra.push({id:'x'+res+(i+1), kind:'gather', res:res, name:{food:'Wild Wheat',wood:'Cedar Stand',stone:'Stone Outcrop',gold:'Gold Seam'}[res],
+      wx:Math.round(p.x), wy:Math.round(p.y), march:Math.round(30+Math.hypot(p.x-WORLD_CX,p.y-WORLD_CY)/WORLD*150),
+      flavor:rflav[res]});
+  }
+  const cnames=['Jackal Den','Red Dunes','Ashen Hollow','Boar Thicket','Serpent Nest','Crow Perch','Wolf Warren',
+    'Scorpion Pit','Hyena Laugh','Vulture Roost','Blood Mesa','Dust Hollow','Thorn Brake','Gravel Pit',
+    'Ember Field','Howling Steppe','Cinder Wash','Salt Flat','Iron Gully','Broken Spear'];
+  for(let i=0;i<16;i++){
+    const p=place(380, 600); if(!p) break;
+    const d=Math.hypot(p.x-WORLD_CX,p.y-WORLD_CY)/WORLD; // 0..~0.7
+    const tier=1+Math.min(4,Math.floor(d*7));
+    const m=4+tier*7;
+    extra.push({id:'xcamp'+(i+1), kind:'camp', tier:tier, name:cnames[i%cnames.length],
+      wx:Math.round(p.x), wy:Math.round(p.y), march:Math.round(30+d*150),
+      garrison:{spearman:Math.round(m*1.1), archer:Math.round(m*0.8), cavalry:Math.round(m*0.4)},
+      loot:{food:m*22, wood:m*18, stone:m*10, gold:m*14},
+      flavor:'Barbarians squat on this land. Drive them off.'});
+  }
+  const rnames=['Toppled Shrine','Sunken Vault','Broken Colossus','Ashen Chapel','Flooded Crypt','Windworn Altar',
+    'Shattered Obelisk','Drowned Archive','Crumbling Bastion','Silent Forum','Weeping Statue','Hollow Ziggurat',
+    'Riven Temple','Forsaken Mint','Collapsed Aqueduct','Gloomy Necropolis'];
+  for(let i=0;i<12;i++){
+    const p=place(380, 600); if(!p) break;
+    const d=Math.hypot(p.x-WORLD_CX,p.y-WORLD_CY)/WORLD;
+    const m=Math.round(6+d*22);
+    extra.push({id:'xruin'+(i+1), kind:'ruin', name:rnames[i%rnames.length],
+      wx:Math.round(p.x), wy:Math.round(p.y), march:Math.round(30+d*150),
+      garrison:{spearman:Math.round(m*1.1), archer:Math.round(m*0.9), cavalry:Math.round(m*0.4)},
+      loot:{gold:m*22, stone:m*16, wood:m*12},
+      flavor:'Old stones, older squatters, oldest gold.'});
+  }
+  const feed=[];
+  const evk=kingdoms.slice(0,6);
+  const evt=['raided a Lv 6 farm','founded a new outpost','completed the city walls','trained 500 fresh spearmen',
+    'signed a trade pact','sacrificed to Ares before a raid'];
+  for(const k of evk) feed.push({t:Date.now(), txt:'['+k.tag+'] '+k.name+' '+evt[Math.floor(rnd()*evt.length)]});
+  // ambient AI armies marching between kingdoms (purely visual; makes the world feel alive)
+  const aiMarches=[];
+  for(let i=0;i<9 && kingdoms.length>1;i++){
+    const a=Math.floor(rnd()*kingdoms.length);
+    let b=Math.floor(rnd()*kingdoms.length);
+    if(b===a) b=(b+1)%kingdoms.length;
+    aiMarches.push({a:kingdoms[a].id, b:kingdoms[b].id, t:rnd(), sp:0.008+rnd()*0.02});
+  }
+  return {kingdoms:kingdoms, extra:extra, tick:0, feed:feed, aiMarches:aiMarches};
+}
+let WORLD_REG=false;
+function ensureWorld(){
+  if(!S) return;
+  if(!S.world){ S.world=genWorld(); save(); }
+  const W=S.world;
+  if(!W.aiMarches){ // backfill for worlds generated before ambient marches
+    const rnd=mulberry32(WORLD_SEED+31); W.aiMarches=[];
+    for(let i=0;i<9 && W.kingdoms.length>1;i++){
+      const a=Math.floor(rnd()*W.kingdoms.length);
+      let b=Math.floor(rnd()*W.kingdoms.length);
+      if(b===a) b=(b+1)%W.kingdoms.length;
+      W.aiMarches.push({a:W.kingdoms[a].id, b:W.kingdoms[b].id, t:rnd(), sp:0.008+rnd()*0.02});
+    }
+  }
+  // world coords for hand-authored nodes
+  for(const n of NODES){ if(n.wx===undefined){ n.wx=n.x/100*WORLD; n.wy=n.y/100*WORLD; } }
+  // register AI kingdoms + seeded extra nodes exactly once per page load
+  if(!WORLD_REG){
+    WORLD_REG=true;
+    for(const k of W.kingdoms){
+      if(!NODE_BY_ID[k.id]){ const n=akNodeFor(k); NODES.push(n); NODE_BY_ID[k.id]=n; }
+    }
+    for(const n of (W.extra||[])){
+      if(!NODE_BY_ID[n.id]){ n.x=n.wx/WORLD*100; n.y=n.wy/WORLD*100; NODES.push(n); NODE_BY_ID[n.id]=n; }
+    }
+  } else {
+    // refresh live stats (levels grow over time)
+    for(const k of W.kingdoms){ const n=NODE_BY_ID[k.id]; if(n&&n.kind==='ak'){ const f=akNodeFor(k); n.garrison=f.garrison; n.loot=f.loot; n.lvl=f.lvl; n.name=f.name; n.tier=f.tier; n.wallMult=f.wallMult; } }
+  }
+}
+function pushFeed(txt){
+  const W=S.world; if(!W) return;
+  W.feed.unshift({t:Date.now(), txt:txt});
+  if(W.feed.length>14) W.feed.length=14;
+}
+function tickWorld(){
+  ensureWorld();
+  const W=S.world; if(!W) return;
+  W.tick++;
+  if(W.aiMarches) for(const am of W.aiMarches){ am.t+=am.sp*10; if(am.t>1) am.t-=1; }
+  if(W.tick%10!==0) return; // living-world beat every ~10s
+  for(const k of W.kingdoms){
+    const rec=S.nodes[k.id];
+    if(rec&&rec.cleared) continue; // conquered kingdoms wait to rebuild
+    k.power+=Math.round(20+Math.random()*60);
+    const nl=Math.min(25, 1+Math.floor(k.power/1500));
+    if(nl>k.lvl){
+      k.lvl=nl;
+      const n=NODE_BY_ID[k.id]; if(n){ const f=akNodeFor(k); n.garrison=f.garrison; n.loot=f.loot; n.lvl=f.lvl; n.tier=f.tier; n.wallMult=f.wallMult; }
+      pushFeed('['+k.tag+'] '+k.name+' raised their banner to level '+nl);
+    }
+  }
+  // ambient events
+  if(Math.random()<0.4){
+    const k=W.kingdoms[Math.floor(Math.random()*W.kingdoms.length)];
+    if(k){
+      const evts=[
+        'raided a Lv '+(2+Math.floor(Math.random()*8))+' farm',
+        'founded a new outpost on the frontier',
+        'completed a granary expansion',
+        'drilled '+(100+Math.floor(Math.random()*900))+' fresh spearmen',
+        'signed a trade pact with a neighbor',
+        'offered sacrifice before a raid'];
+      pushFeed('['+k.tag+'] '+k.name+' '+evts[Math.floor(Math.random()*evts.length)]);
+    }
+  }
+  if(Math.random()<0.12 && W.kingdoms.length>1){
+    const a=W.kingdoms[Math.floor(Math.random()*W.kingdoms.length)];
+    let b=W.kingdoms[Math.floor(Math.random()*W.kingdoms.length)];
+    if(b!==a) pushFeed('['+a.tag+'] '+a.name+' clashed with ['+b.tag+'] '+b.name+' on the border');
+  }
+  // conquered kingdoms rebuild after ~6h
+  const now=nowMs();
+  for(const k of W.kingdoms){
+    const rec=S.nodes[k.id];
+    if(rec&&rec.cleared&&rec.clearedAt&&now-rec.clearedAt>6*3600*1000){
+      delete S.nodes[k.id];
+      const n=NODE_BY_ID[k.id]; if(n){ const f=akNodeFor(k); n.garrison=f.garrison; n.loot=f.loot; n.lvl=f.lvl; n.tier=f.tier; }
+      pushFeed('['+k.tag+'] '+k.name+' rebuilt their stronghold');
+    }
+  }
+}
+
+/* ---------------- world-map terrain (pre-rendered once) ---------------- */
+let WM_TERRAIN=null;
+/* Convex hull (monotone chain) for alliance territory blobs. pts: [{x,y}] in terrain px. */
+function convexHull(pts){
+  const p=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
+  if(p.length<4) return p;
+  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lo=[], hi=[];
+  for(const q of p){ while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],q)<=0) lo.pop(); lo.push(q); }
+  for(let i=p.length-1;i>=0;i--){ const q=p[i]; while(hi.length>=2&&cross(hi[hi.length-2],hi[hi.length-1],q)<=0) hi.pop(); hi.push(q); }
+  lo.pop(); hi.pop(); return lo.concat(hi);
+}
+function buildTerrain(){
+  const T=1536, c=document.createElement('canvas'); c.width=T; c.height=T;
+  const g=c.getContext('2d'), rnd=mulberry32(WORLD_SEED+7);
+  const w2t=T/WORLD;
+  // base: teal-green grass (RoK-like)
+  g.fillStyle='#2e6b4e'; g.fillRect(0,0,T,T);
+  // large soft tonal blobs
+  const greens=['#357a58','#2a6146','#3d8560','#316b4c','#458a63'];
+  for(let i=0;i<130;i++){
+    g.globalAlpha=0.5; g.fillStyle=greens[Math.floor(rnd()*greens.length)];
+    const r=(40+rnd()*130)*w2t*10;
+    g.beginPath(); g.ellipse(rnd()*T,rnd()*T,r,r*(0.5+rnd()*0.7),rnd()*Math.PI,0,7); g.fill();
+  }
+  // lighter clearings
+  for(let i=0;i<40;i++){
+    g.globalAlpha=0.30; g.fillStyle='#5a9a72';
+    const r=(30+rnd()*80)*w2t*10;
+    g.beginPath(); g.ellipse(rnd()*T,rnd()*T,r,r*0.7,rnd()*Math.PI,0,7); g.fill();
+  }
+  // fine noise
+  g.globalAlpha=0.14;
+  for(let i=0;i<5200;i++){
+    g.fillStyle=rnd()<0.5?'#1f4a34':'#6aa884';
+    g.fillRect(rnd()*T,rnd()*T,2+rnd()*4,2+rnd()*4);
+  }
+  g.globalAlpha=1;
+  // soft dark vignette at the world edge (the known world ends here)
+  const vg=g.createRadialGradient(T/2,T/2,T*0.35,T/2,T/2,T*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(10,20,14,0.55)');
+  g.fillStyle=vg; g.fillRect(0,0,T,T);
+  // a river winding through the west
+  g.strokeStyle='#2b5f8a'; g.lineCap='round';
+  g.lineWidth=26*w2t*10;
+  g.beginPath(); g.moveTo(0.16*T,0);
+  g.bezierCurveTo(0.20*T,0.3*T, 0.10*T,0.55*T, 0.17*T,0.8*T); g.stroke();
+  g.strokeStyle='#3f88b8'; g.lineWidth=14*w2t*10; g.stroke();
+  // sparkling lake in the east
+  const lx=0.80*T, ly=0.30*T;
+  g.fillStyle='#2b5f8a';
+  g.beginPath(); g.ellipse(lx,ly,0.055*T,0.04*T,0.4,0,7); g.fill();
+  g.fillStyle='#3f88b8';
+  g.beginPath(); g.ellipse(lx,ly,0.042*T,0.03*T,0.4,0,7); g.fill();
+  g.strokeStyle='rgba(255,255,255,0.65)'; g.lineWidth=2;
+  for(let i=0;i<7;i++){ // highlight ripples
+    const rx=lx+(rnd()-0.5)*0.06*T, ry=ly+(rnd()-0.5)*0.045*T, rw=6+rnd()*14;
+    g.beginPath(); g.ellipse(rx,ry,rw,rw*0.32,0,0.2,Math.PI-0.2); g.stroke();
+  }
+  // purple wildflower patches
+  for(let i=0;i<26;i++){
+    const cx=rnd()*T, cy=rnd()*T, cr=(20+rnd()*45)*w2t*10;
+    for(let j=0;j<26;j++){
+      const a=rnd()*Math.PI*2, rr2=Math.sqrt(rnd())*cr;
+      g.fillStyle=['#b48ad8','#9a6fc0','#c9a8e8'][Math.floor(rnd()*3)];
+      g.beginPath(); g.arc(cx+Math.cos(a)*rr2,cy+Math.sin(a)*rr2,1.6+rnd()*1.8,0,7); g.fill();
+    }
+  }
+  // tree clusters: round teal canopy + short trunk
+  for(let i=0;i<140;i++){
+    const cx=rnd()*T, cy=rnd()*T, ntr=4+Math.floor(rnd()*6);
+    for(let j=0;j<ntr;j++){
+      const x=cx+(rnd()-0.5)*30, y=cy+(rnd()-0.5)*30, r=3.5+rnd()*4.5;
+      g.fillStyle='#4a3423'; g.fillRect(x-1.2,y+r*0.3,2.4,r*0.7); // trunk
+      const cols=['#1f7a5c','#27936e','#1a6449'];
+      for(let b=0;b<3;b++){
+        g.fillStyle=cols[(i+j+b)%3]; g.globalAlpha=0.92;
+        g.beginPath(); g.arc(x+(rnd()-0.5)*r*0.9,y+(rnd()-0.5)*r*0.7,r*(0.55+rnd()*0.3),0,7); g.fill();
+      }
+      g.globalAlpha=1;
+    }
+  }
+  // gray rock clusters
+  for(let i=0;i<140;i++){
+    const x=rnd()*T, y=rnd()*T, nr=2+Math.floor(rnd()*3);
+    for(let j=0;j<nr;j++){
+      const rx=x+(rnd()-0.5)*14, ry=y+(rnd()-0.5)*10, rs=2.5+rnd()*4;
+      g.fillStyle=['#8a8d90','#6f7276','#a3a6a9'][Math.floor(rnd()*3)];
+      g.beginPath();
+      g.moveTo(rx-rs,ry+rs*0.6); g.lineTo(rx-rs*0.3,ry-rs*0.8);
+      g.lineTo(rx+rs*0.7,ry-rs*0.4); g.lineTo(rx+rs,ry+rs*0.6);
+      g.closePath(); g.fill();
+      g.fillStyle='rgba(255,255,255,0.25)';
+      g.beginPath(); g.moveTo(rx-rs*0.3,ry-rs*0.8); g.lineTo(rx+rs*0.1,ry-rs*0.5); g.lineTo(rx-rs*0.1,ry-rs*0.2); g.closePath(); g.fill();
+    }
+  }
+  // glowing alliance territory: soft boundary looping each alliance's cluster
+  const W0=S&&S.world;
+  if(W0){
+    for(const tag of AK_TAGS){
+      const pts=W0.kingdoms.filter(k=>k.tag===tag).map(k=>({x:k.wx*w2t,y:k.wy*w2t}));
+      if(pts.length<4) continue;
+      const hull=convexHull(pts);
+      // pad the hull outward a little so the glow clears the cities
+      const cx=hull.reduce((a,p)=>a+p.x,0)/hull.length, cy=hull.reduce((a,p)=>a+p.y,0)/hull.length;
+      const hp=hull.map(p=>{ const dx=p.x-cx, dy=p.y-cy, d=Math.hypot(dx,dy)||1, pad=26*w2t*10;
+        return {x:p.x+dx/d*pad, y:p.y+dy/d*pad}; });
+      const col=TAG_COLORS[tag]||'#f0d98a';
+      g.fillStyle=col+'0d'; // ~5% tint wash inside the territory
+      g.beginPath(); hp.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.closePath(); g.fill();
+      const bands=[[16,'2e'],[8,'55'],[3,'99']];
+      for(const [lw,al] of bands){
+        g.strokeStyle=col+al; g.lineWidth=lw; g.lineJoin='round';
+        g.beginPath(); hp.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.closePath(); g.stroke();
+      }
+    }
+  }
+  // stamp grass clearings under every entity so nothing sits on water
+  function clearing(wx,wy,r){
+    const x=wx*w2t, y=wy*w2t, rr2=r*w2t;
+    g.fillStyle='#3d8560';
+    g.beginPath(); g.ellipse(x,y,rr2,rr2*0.8,0,0,7); g.fill();
+  }
+  clearing(WORLD_CX,WORLD_CY,300);
+  const W=S&&S.world;
+  if(W){ for(const k of W.kingdoms) clearing(k.wx,k.wy,210); }
+  for(const n of NODES){ if(n.wx!==undefined) clearing(n.wx,n.wy,n.kind==='gather'?120:150); }
+  WM_TERRAIN=c;
+}
+
+/* ---------------- world-map canvas art (no emoji) ----------------
+   All markers drawn with paths in the bronze-age palette. */
+function rr(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+/* Walled compound with alliance-tinted roofs. s = half-size in px.
+   o: {dark, ruined, tag (alliance tag -> roof tint), lvl, roof (override color)} */
+function drawCityIcon(c,x,y,s,o){
+  o=o||{};
+  const roof=o.roof||(o.tag&&TAG_COLORS[o.tag])||BRONZE;
+  const wall=o.dark?'#241a10':'#4a3620', trim=o.dark?'#4a3320':BRONZE_D;
+  const big=(o.lvl||1)>=15;
+  // ground shadow
+  c.fillStyle='rgba(0,0,0,0.25)';
+  c.beginPath(); c.ellipse(x,y+s*0.95,s*1.05,s*0.35,0,0,7); c.fill();
+  // outer wall ring
+  c.fillStyle=wall;
+  rr(c,x-s,y-s*0.85,s*2,s*1.7,s*0.28); c.fill();
+  c.lineWidth=Math.max(1.5,s*0.09); c.strokeStyle=trim;
+  rr(c,x-s,y-s*0.85,s*2,s*1.7,s*0.28); c.stroke();
+  // crenellations along the wall top
+  c.fillStyle=trim;
+  const n=7, cw=(s*2)/n;
+  for(let i=0;i<n;i++) c.fillRect(x-s+i*cw+cw*0.22, y-s*0.85-s*0.24, cw*0.56, s*0.24);
+  // corner towers with tinted roofs
+  for(const sx of [-s*0.92,s*0.92]) for(const sy of [-s*0.78,s*0.78]){
+    c.fillStyle=wall; c.fillRect(x+sx-s*0.16,y+sy-s*0.3,s*0.32,s*0.6);
+    c.fillStyle=roof;
+    c.beginPath(); c.moveTo(x+sx-s*0.22,y+sy-s*0.3);
+    c.lineTo(x+sx,y+sy-s*0.62); c.lineTo(x+sx+s*0.22,y+sy-s*0.3);
+    c.closePath(); c.fill();
+  }
+  // inner houses with alliance-tinted pitched roofs
+  function house(hx,hy,hs){
+    c.fillStyle=o.dark?'#1c130a':'#5a4128';
+    c.fillRect(x+hx-hs*0.5,y+hy-hs*0.35,hs,hs*0.7);
+    c.fillStyle=roof;
+    c.beginPath(); c.moveTo(x+hx-hs*0.62,y+hy-hs*0.35);
+    c.lineTo(x+hx,y+hy-hs*0.95); c.lineTo(x+hx+hs*0.62,y+hy-hs*0.35);
+    c.closePath(); c.fill();
+    c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
+  }
+  house(-s*0.42,s*0.28,s*0.62);
+  house(s*0.42,s*0.30,s*0.56);
+  if(big) house(0,-s*0.30,s*0.60); // high-level kingdoms: an extra hall
+  // central keep with banner pole flying the alliance color
+  c.fillStyle=wall; c.fillRect(x-s*0.26,y-s*0.75,s*0.52,s*1.1);
+  c.fillStyle=roof;
+  c.beginPath(); c.moveTo(x-s*0.34,y-s*0.75);
+  c.lineTo(x,y-s*1.25); c.lineTo(x+s*0.34,y-s*0.75);
+  c.closePath(); c.fill();
+  c.strokeStyle='#2a1c10'; c.lineWidth=Math.max(1.5,s*0.07);
+  c.beginPath(); c.moveTo(x,y-s*1.25); c.lineTo(x,y-s*1.62); c.stroke();
+  c.fillStyle=roof;
+  c.beginPath(); c.moveTo(x,y-s*1.62);
+  c.lineTo(x+s*0.42,y-s*1.52); c.lineTo(x,y-s*1.40);
+  c.closePath(); c.fill();
+  // gate
+  c.fillStyle='#120c06';
+  c.beginPath(); c.arc(x,y+s*0.85,s*0.24,Math.PI,0); c.fill();
+  c.fillRect(x-s*0.24,y+s*0.85,s*0.48,s*0.2);
+  if(o.ruined){
+    c.strokeStyle='#0d0d0d'; c.lineWidth=Math.max(1.5,s*0.09);
+    c.beginPath(); c.moveTo(x-s*0.4,y-s*0.8);
+    c.lineTo(x,y-s*1.1); c.lineTo(x-s*0.3,y-s*1.3); c.stroke();
+  }
+}
+/* Resource node icons: wheat stalks / log pile / stone blocks / gold ingots */
+function drawResIcon(c,res,x,y,s){
+  if(res==='food'){
+    c.strokeStyle='#d9b64a'; c.lineWidth=Math.max(1.5,s*0.12); c.lineCap='round';
+    c.fillStyle='#e8c86a';
+    for(let i=-1;i<=1;i++){
+      const bx=x+i*s*0.45;
+      c.beginPath(); c.moveTo(bx,y+s); c.quadraticCurveTo(bx+i*s*0.15,y,bx+i*s*0.3,y-s*0.9); c.stroke();
+      for(let gi=0;gi<4;gi++){
+        const gy=y-s*0.85+gi*s*0.28, gx=bx+i*s*0.3*(1-gi*0.18);
+        c.beginPath(); c.ellipse(gx,gy,s*0.16,s*0.3,i*0.5,0,7); c.fill();
+      }
+    }
+  } else if(res==='wood'){
+    for(let i=0;i<3;i++){
+      const ly=y+s*0.55-i*s*0.5, lw=s*(1.5-i*0.18);
+      c.fillStyle=i%2?LEATHER_L:'#4a3418';
+      rr(c,x-lw/2,ly-s*0.24,lw,s*0.48,s*0.2); c.fill();
+      c.fillStyle='#8a6a3a';
+      c.beginPath(); c.arc(x-lw/2+s*0.1,ly,s*0.17,0,7); c.fill();
+    }
+  } else if(res==='stone'){
+    c.fillStyle='#9a958a';
+    rr(c,x-s*0.9,y+s*0.1,s*1.8,s*0.9,s*0.25); c.fill();
+    c.fillStyle='#b5b0a4';
+    rr(c,x-s*0.65,y-s*0.6,s*1.3,s*0.85,s*0.25); c.fill();
+    c.fillStyle='#7d786d';
+    rr(c,x-s*0.2,y-s*1.15,s*0.9,s*0.7,s*0.22); c.fill();
+    c.strokeStyle='#5d594f'; c.lineWidth=Math.max(1,s*0.08);
+    c.beginPath(); c.moveTo(x-s*0.65,y-s*0.18); c.lineTo(x+s*0.65,y-s*0.18); c.stroke();
+  } else { // gold crystal cluster
+    const shards=[[-0.55,0.45,0.9,1.25],[0,0.5,1.0,1.6],[0.55,0.45,0.85,1.1],[-0.1,0.5,0.6,0.9]];
+    for(let i=0;i<shards.length;i++){
+      const sx=shards[i][0]*s, by=y+shards[i][1]*s, sw=shards[i][2]*s*0.32, hh=shards[i][3]*s*0.62;
+      c.fillStyle=i%2?GOLD:GOLD_L;
+      c.beginPath();
+      c.moveTo(sx-sw,by); c.lineTo(sx,by-hh); c.lineTo(sx+sw,by); c.closePath(); c.fill();
+      c.strokeStyle=BRONZE_D; c.lineWidth=Math.max(1,s*0.07); c.stroke();
+      c.strokeStyle='rgba(255,246,220,0.7)'; c.lineWidth=Math.max(1,s*0.05);
+      c.beginPath(); c.moveTo(sx,by-hh); c.lineTo(sx-sw*0.4,by-hh*0.25); c.stroke();
+    }
+  }
+}
+/* Broken marble columns for ruins */
+function drawRuinIcon(c,x,y,s,o){
+  o=o||{};
+  function column(cx,ch,broken){
+    c.fillStyle=MARBLE;
+    const w=s*0.42;
+    c.fillRect(cx-w/2, y+s-ch, w, ch);
+    c.fillStyle='#c9c0a8';
+    c.fillRect(cx-w/2, y+s-ch, w*0.3, ch);
+    c.fillRect(cx-w/2, y+s-s*0.12, w, s*0.12); // base
+    c.fillRect(cx-w/2-s*0.08, y+s-ch-s*0.14, w+s*0.16, s*0.14); // capital
+    if(broken){
+      c.fillStyle='#2e5429';
+      c.beginPath(); c.moveTo(cx-w/2,y+s-ch);
+      c.lineTo(cx-w*0.1,y+s-ch-s*0.3); c.lineTo(cx+w*0.2,y+s-ch-s*0.08);
+      c.lineTo(cx+w/2,y+s-ch-s*0.34); c.lineTo(cx+w/2,y+s-ch); c.closePath(); c.fill();
+    }
+  }
+  column(x-s*0.55, s*1.5, true);
+  column(x+s*0.45, s*1.9, false);
+  if(o.dark){ c.fillStyle='rgba(20,10,6,0.35)'; c.fillRect(x-s,y-s,s*2,s*2); }
+}
+/* Barbarian camp: hide tent + crossed spears + war shield */
+function drawCampIcon(c,x,y,s,o){
+  o=o||{};
+  // tent
+  c.fillStyle=o.dark?'#2a1c10':LEATHER_L;
+  c.beginPath(); c.moveTo(x-s, y+s); c.lineTo(x, y-s*1.1); c.lineTo(x+s, y+s); c.closePath(); c.fill();
+  c.strokeStyle=BRONZE_D; c.lineWidth=Math.max(1,s*0.1); c.stroke();
+  c.fillStyle='#1c130a';
+  c.beginPath(); c.moveTo(x-s*0.32,y+s); c.lineTo(x,y+s*0.28); c.lineTo(x+s*0.32,y+s); c.closePath(); c.fill();
+  // crossed spears
+  c.strokeStyle='#7a5c2e'; c.lineWidth=Math.max(1.5,s*0.14); c.lineCap='round';
+  c.beginPath(); c.moveTo(x-s*1.15,y+s*0.9); c.lineTo(x+s*1.15,y-s*0.9); c.stroke();
+  c.beginPath(); c.moveTo(x+s*1.15,y+s*0.9); c.lineTo(x-s*1.15,y-s*0.9); c.stroke();
+  c.fillStyle=MARBLE;
+  c.beginPath(); c.moveTo(x+s*1.15,y-s*0.9); c.lineTo(x+s*1.15+s*0.28,y-s*0.75); c.lineTo(x+s*1.0,y-s*0.62); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(x-s*1.15,y-s*0.9); c.lineTo(x-s*1.15-s*0.28,y-s*0.75); c.lineTo(x-s*1.0,y-s*0.62); c.closePath(); c.fill();
+  // war shield
+  c.fillStyle=BRONZE; c.beginPath(); c.arc(x+s*0.95,y+s*0.55,s*0.42,0,7); c.fill();
+  c.fillStyle=BRONZE_D; c.beginPath(); c.arc(x+s*0.95,y+s*0.55,s*0.24,0,7); c.fill();
+  c.fillStyle=GOLD; c.beginPath(); c.arc(x+s*0.95,y+s*0.55,s*0.09,0,7); c.fill();
+}
+/* Carved plaque banner: dark leather plaque, bronze border, aged-gold text */
+function drawPlaque(c,x,y,text,o){
+  o=o||{};
+  const fs=o.fs||11;
+  c.font='bold '+fs+'px Georgia,serif';
+  const w=c.measureText(text).width+14, h=fs+9;
+  if(o.clampW) x=Math.max(w/2+2, Math.min(o.clampW-w/2-2, x)); // never clip at canvas edges
+  const bx=x-w/2, by=y-h/2;
+  c.fillStyle='rgba(20,12,6,0.88)';
+  rr(c,bx,by,w,h,5); c.fill();
+  c.strokeStyle=o.gold===false?BRONZE:GOLD; c.lineWidth=1.5;
+  rr(c,bx+1.5,by+1.5,w-3,h-3,4); c.stroke();
+  c.fillStyle=o.color||'#f0d98a';
+  c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(text,x,y+1);
+  return {w:w,h:h};
+}
+/* Tiny keep for far-zoom LOD: wall square, tinted roof, pennant. */
+function drawKeepMini(c,x,y,s,roof,ruined){
+  roof=roof||BRONZE;
+  c.fillStyle='rgba(0,0,0,0.25)';
+  c.beginPath(); c.ellipse(x,y+s*0.9,s,s*0.35,0,0,7); c.fill();
+  c.fillStyle='#4a3620';
+  c.fillRect(x-s*0.7,y-s*0.5,s*1.4,s*1.3);
+  c.fillStyle=roof;
+  c.beginPath(); c.moveTo(x-s*0.85,y-s*0.5);
+  c.lineTo(x,y-s*1.15); c.lineTo(x+s*0.85,y-s*0.5);
+  c.closePath(); c.fill();
+  c.strokeStyle='#2a1c10'; c.lineWidth=1.5;
+  c.beginPath(); c.moveTo(x,y-s*1.15); c.lineTo(x,y-s*1.5); c.stroke();
+  c.fillStyle=roof;
+  c.beginPath(); c.moveTo(x,y-s*1.5);
+  c.lineTo(x+s*0.5,y-s*1.42); c.lineTo(x,y-s*1.32);
+  c.closePath(); c.fill();
+  if(ruined){
+    c.strokeStyle='#111'; c.lineWidth=1.5;
+    c.beginPath(); c.moveTo(x-s*0.5,y-s*0.5); c.lineTo(x,y-s*0.9); c.stroke();
+  }
+}
+/* Shield badge: small bronze shield with the level number */
+function drawLevelBadge(c,x,y,lvl,s){
+  const w=(s||9);
+  c.beginPath();
+  c.moveTo(x-w,y-w*0.85);
+  c.lineTo(x+w,y-w*0.85);
+  c.lineTo(x+w,y+w*0.05);
+  c.quadraticCurveTo(x+w,y+w*0.72,x,y+w*1.12);
+  c.quadraticCurveTo(x-w,y+w*0.72,x-w,y+w*0.05);
+  c.closePath();
+  c.fillStyle=BRONZE; c.fill();
+  c.strokeStyle=GOLD_L; c.lineWidth=1.5; c.stroke();
+  c.beginPath();
+  c.moveTo(x-w*0.62,y-w*0.5); c.lineTo(x+w*0.62,y-w*0.5);
+  c.lineTo(x+w*0.62,y+w*0.05);
+  c.quadraticCurveTo(x+w*0.62,y+w*0.45,x,y+w*0.72);
+  c.quadraticCurveTo(x-w*0.62,y+w*0.45,x-w*0.62,y+w*0.05);
+  c.closePath();
+  c.strokeStyle=BRONZE_D; c.lineWidth=1; c.stroke();
+  c.fillStyle='#ffe9c9'; c.font='bold '+(w+1)+'px Arial'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(String(lvl),x,y+0.5);
+}
+
+/* ---------------- world-map camera, input & renderer ---------------- */
+let WMAP=null;
+function w2s(wx,wy){ // world -> screen
+  const m=WMAP, r=m.canvas.getBoundingClientRect();
+  return {x:(wx-m.cam.x)*m.cam.z+r.width/2, y:(wy-m.cam.y)*m.cam.z+r.height/2};
+}
+function s2w(sx,sy){ // screen -> world
+  const m=WMAP, r=m.canvas.getBoundingClientRect();
+  return {x:(sx-r.width/2)/m.cam.z+m.cam.x, y:(sy-r.height/2)/m.cam.z+m.cam.y};
+}
+function renderMap(){
+  ensureWorld();
+  const root=$('#view-map');
+  if(!$('#worldmap')){
+    root.innerHTML=
+      '<div id="wm-head"><input id="wm-kname" maxlength="24" value="'+esc(S.kingdomName||'Troy')+'" placeholder="Kingdom name" onchange="Game.wmSaveName()">'+
+      '<div id="wm-zoomrow"><button class="wm-zbtn" onclick="Game.wmZoom(1.35)">+</button>'+
+      '<button class="wm-zbtn" onclick="Game.wmZoom(0.74)">−</button>'+
+      '<button class="wm-zbtn" style="font-size:14px" onclick="Game.wmCenter()" title="Center on Troy">⌂</button></div></div>'+
+      '<div id="wm-resbar">'+
+      '<span class="wm-res"><canvas class="wm-ric" data-res="food" width="20" height="20"></canvas><b id="wm-r-food"></b></span>'+
+      '<span class="wm-res"><canvas class="wm-ric" data-res="wood" width="20" height="20"></canvas><b id="wm-r-wood"></b></span>'+
+      '<span class="wm-res"><canvas class="wm-ric" data-res="stone" width="20" height="20"></canvas><b id="wm-r-stone"></b></span>'+
+      '<span class="wm-res"><canvas class="wm-ric" data-res="gold" width="20" height="20"></canvas><b id="wm-r-gold"></b></span>'+
+      '<span class="wm-pow" id="wm-pow"></span><span class="wm-coords" id="wm-coords"></span></div>'+
+      '<canvas id="worldmap"></canvas>'+
+      '<div id="wm-feed"></div><div id="wm-sheet"></div>'+
+      '<div class="small" style="margin-top:6px">Drag to explore · pinch or scroll to zoom · tap a banner to scout, attack, or gather.</div>';
+    initWorldMap();
+  }
+  updateWorldFeed();
+  drawWorld();
+}
+function initWorldMap(){
+  const cv=$('#worldmap');
+  WMAP={canvas:cv, ctx:cv.getContext('2d'), cam:{x:WORLD_CX,y:WORLD_CY,z:0.35},
+        pointers:{}, pinchD:0, downAt:0, downXY:null, moved:false, drawn:[], sel:null, t:0};
+  if(!WMAP.repaint) WMAP.repaint=setInterval(()=>{ if(UI.tab==='map'&&!document.hidden) drawWorld(); },900);
+  if(!WM_TERRAIN) buildTerrain();
+  sizeWorldCanvas();
+  // paint custom mini resource icons into the top bar (drawn, not emoji)
+  document.querySelectorAll('#wm-resbar .wm-ric').forEach(cv=>{
+    const g=cv.getContext('2d');
+    g.clearRect(0,0,20,20);
+    drawResIcon(g, cv.getAttribute('data-res'), 10, 11, 5.5);
+  });
+  window.addEventListener('resize', sizeWorldCanvas);
+  cv.addEventListener('pointerdown', e=>{
+    cv.setPointerCapture(e.pointerId);
+    WMAP.pointers[e.pointerId]={x:e.clientX,y:e.clientY};
+    WMAP.downAt=Date.now(); WMAP.downXY={x:e.clientX,y:e.clientY}; WMAP.moved=false;
+    const ks=Object.keys(WMAP.pointers);
+    if(ks.length===2){
+      const a=WMAP.pointers[ks[0]], b=WMAP.pointers[ks[1]];
+      WMAP.pinchD=Math.hypot(a.x-b.x,a.y-b.y);
+    }
+  });
+  cv.addEventListener('pointermove', e=>{
+    const p=WMAP.pointers[e.pointerId]; if(!p) return;
+    const dx=e.clientX-p.x, dy=e.clientY-p.y;
+    p.x=e.clientX; p.y=e.clientY;
+    const ks=Object.keys(WMAP.pointers);
+    if(ks.length===2){
+      const a=WMAP.pointers[ks[0]], b=WMAP.pointers[ks[1]];
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(WMAP.pinchD>0){
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        zoomAt(mx,my,d/WMAP.pinchD);
+      }
+      WMAP.pinchD=d; WMAP.moved=true;
+    } else if(ks.length===1){
+      if(Math.abs(e.clientX-WMAP.downXY.x)+Math.abs(e.clientY-WMAP.downXY.y)>8) WMAP.moved=true;
+      WMAP.cam.x-=dx/WMAP.cam.z; WMAP.cam.y-=dy/WMAP.cam.z;
+      clampCam();
+    }
+    drawWorld();
+  });
+  function endPointer(e){
+    const wasTap=!WMAP.moved && (Date.now()-WMAP.downAt)<400;
+    delete WMAP.pointers[e.pointerId];
+    if(Object.keys(WMAP.pointers).length<2) WMAP.pinchD=0;
+    if(wasTap && e.type==='pointerup'){
+      const r=cv.getBoundingClientRect();
+      worldTap(e.clientX-r.left, e.clientY-r.top);
+    }
+  }
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+  cv.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect();
+    zoomAt(e.clientX-r.left, e.clientY-r.top, e.deltaY<0?1.15:0.87);
+    drawWorld();
+  }, {passive:false});
+}
+function sizeWorldCanvas(){
+  if(!WMAP) return;
+  const cv=WMAP.canvas, r=cv.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.max(50,r.width*dpr); cv.height=Math.max(50,r.height*dpr);
+  drawWorld();
+}
+function clampCam(){
+  const m=WMAP.cam;
+  m.z=Math.max(0.10,Math.min(3,m.z));
+  m.x=Math.max(-600,Math.min(WORLD+600,m.x));
+  m.y=Math.max(-600,Math.min(WORLD+600,m.y));
+}
+function zoomAt(sx,sy,f){
+  const m=WMAP, before=s2w(sx,sy);
+  m.cam.z*=f; clampCam();
+  const after=s2w(sx,sy);
+  m.cam.x+=before.x-after.x; m.cam.y+=before.y-after.y;
+  clampCam();
+}
+function worldTap(sx,sy){
+  let best=null, bd=40;
+  for(const e of WMAP.drawn){
+    const d=Math.hypot(e.sx-sx,e.sy-sy);
+    if(d<bd){ bd=d; best=e; }
+  }
+  selectWorldEntity(best?best.id:null);
+}
+/* Ambient AI armies: tiny war-bands drifting between kingdoms on dotted paths */
+function drawAIMarches(c){
+  const W=S.world; if(!W||!W.aiMarches) return;
+  const kb={}; for(const k of W.kingdoms) kb[k.id]=k;
+  for(const am of W.aiMarches){
+    const a=kb[am.a], b=kb[am.b]; if(!a||!b) continue;
+    const pa=w2s(a.wx,a.wy), pb=w2s(b.wx,b.wy);
+    const r=WMAP.canvas.getBoundingClientRect();
+    if((pa.x<-80&&pb.x<-80)||(pa.x>r.width+80&&pb.x>r.width+80)||
+       (pa.y<-80&&pb.y<-80)||(pa.y>r.height+80&&pb.y>r.height+80)) continue;
+    c.strokeStyle='rgba(200,170,120,0.30)'; c.lineWidth=1.5; c.setLineDash([4,7]);
+    c.beginPath(); c.moveTo(pa.x,pa.y); c.lineTo(pb.x,pb.y); c.stroke(); c.setLineDash([]);
+    const x=pa.x+(pb.x-pa.x)*am.t, y=pa.y+(pb.y-pa.y)*am.t;
+    // tiny troop cluster: three bronze helmets
+    for(let i=0;i<3;i++){
+      const ox=(i-1)*5, oy=(i%2)*4;
+      c.fillStyle='#6e4a22'; c.beginPath(); c.arc(x+ox,y+oy,3.4,0,7); c.fill();
+      c.fillStyle=GOLD; c.beginPath(); c.arc(x+ox,y+oy,1.4,0,7); c.fill();
+    }
+  }
+}
+/* Player march lines + moving war-band dot */
+function drawMarches(c,now){
+  for(const m of S.marches){
+    const n=NODE_BY_ID[m.nodeId]; if(!n||n.wx===undefined) continue;
+    const a=w2s(WORLD_CX,WORLD_CY), b=w2s(n.wx,n.wy);
+    c.strokeStyle='rgba(232,200,106,0.55)'; c.lineWidth=2; c.setLineDash([7,6]);
+    c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); c.setLineDash([]);
+    let t=0.5;
+    if(m.phase==='out') t=1-Math.max(0,(m.arriveAt-now)/(m.marchSecs*1000));
+    else if(m.phase==='back') t=Math.max(0,(m.returnAt-now)/(m.marchSecs*1000));
+    t=Math.max(0,Math.min(1,t));
+    const x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t;
+    // distance label at the path midpoint, RoK-style
+    const km=Math.max(1,Math.round(Math.hypot(n.wx-WORLD_CX,n.wy-WORLD_CY)/600));
+    drawPlaque(c,(a.x+b.x)/2,(a.y+b.y)/2-16,km+' KM',{fs:10});
+    // glowing objective ring at the target
+    const pr=13+Math.sin(now/300)*3;
+    c.strokeStyle='rgba(232,200,106,0.9)'; c.lineWidth=3;
+    c.beginPath(); c.arc(b.x,b.y,pr,0,7); c.stroke();
+    c.strokeStyle='rgba(232,200,106,0.35)'; c.lineWidth=7;
+    c.beginPath(); c.arc(b.x,b.y,pr,0,7); c.stroke();
+    c.fillStyle='#e8c86a'; c.beginPath(); c.arc(x,y,5,0,7); c.fill();
+    c.strokeStyle='#5e3a1a'; c.lineWidth=2; c.beginPath(); c.arc(x,y,5,0,7); c.stroke();
+    c.fillStyle='#7a1f1f'; c.beginPath(); c.arc(x,y,2,0,7); c.fill();
+  }
+}
+function drawWorld(){
+  if(!WMAP||!$('#worldmap')) return;
+  const m=WMAP, cv=m.canvas, c=m.ctx, now=nowMs();
+  m.t++;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const W=cv.width/dpr, H=cv.height/dpr;
+  c.setTransform(dpr,0,0,dpr,0,0);
+  c.clearRect(0,0,W,H);
+  // terrain: blit visible world rect from pre-rendered canvas
+  const T=WM_TERRAIN, tw=T.width, w2t=tw/WORLD;
+  const vx0=m.cam.x-W/2/m.cam.z, vy0=m.cam.y-H/2/m.cam.z;
+  const vx1=m.cam.x+W/2/m.cam.z, vy1=m.cam.y+H/2/m.cam.z;
+  c.imageSmoothingEnabled=true;
+  c.drawImage(T, Math.max(0,vx0)*w2t, Math.max(0,vy0)*w2t,
+    (Math.min(WORLD,vx1)-Math.max(0,vx0))*w2t, (Math.min(WORLD,vy1)-Math.max(0,vy0))*w2t,
+    (Math.max(0,vx0)-vx0)*m.cam.z, (Math.max(0,vy0)-vy0)*m.cam.z,
+    (Math.min(WORLD,vx1)-Math.max(0,vx0))*m.cam.z, (Math.min(WORLD,vy1)-Math.max(0,vy0))*m.cam.z);
+  m.drawn=[];
+  const vis=(wx,wy,pad)=> wx>vx0-pad&&wx<vx1+pad&&wy>vy0-pad&&wy<vy1+pad;
+  const z=m.cam.z, lbl=z>0.16;
+  const kfs=Math.max(8,Math.min(13,30*z)); // kingdom banner font: always readable, never hidden
+  // resource / camp / ruin / city nodes
+  for(const n of NODES){
+    if(n.wx===undefined||n.kind==='ak') continue;
+    if(!vis(n.wx,n.wy,120)) continue;
+    const p=w2s(n.wx,n.wy), s=Math.max(7,Math.min(22,13*z+4));
+    const cleared=S.nodes[n.id]&&S.nodes[n.id].cleared;
+    c.globalAlpha=cleared?0.45:1;
+    if(n.kind==='gather') drawResIcon(c,n.res,p.x,p.y,s);
+    else if(n.kind==='camp') drawCampIcon(c,p.x,p.y,s,{});
+    else if(n.kind==='ruin') drawRuinIcon(c,p.x,p.y,s,{});
+    else if(n.kind==='boss'){ drawCityIcon(c,p.x,p.y,s*1.15,{dark:true}); }
+    else drawCityIcon(c,p.x,p.y,s,{});
+    c.globalAlpha=1;
+    if(lbl){
+      const ty=p.y-s*2.1;
+      drawPlaque(c,p.x,ty,n.name,{fs:Math.max(9,Math.min(12,10*z+3))});
+      if(n.tier) drawLevelBadge(c,p.x+s*1.2,p.y-s*1.4,n.tier,Math.max(7,Math.min(11,8*z+2)));
+    }
+    m.drawn.push({id:n.id,sx:p.x,sy:p.y});
+  }
+  // AI kingdoms — banners ALWAYS visible, the single most important RoK cue.
+  // Far zoom-out: small keep icon + compact rectangular pill, no level shield.
+  // Closer zoom: full walled compound + plaque + level badge below it.
+  const far=z<0.18;
+  for(const k of S.world.kingdoms){
+    if(!vis(k.wx,k.wy,200)) continue;
+    const p=w2s(k.wx,k.wy);
+    const cleared=S.nodes[k.id]&&S.nodes[k.id].cleared;
+    if(far){
+      const s=Math.max(8,Math.min(14,(10+k.lvl*0.5)*z+5));
+      drawKeepMini(c,p.x,p.y,s,TAG_COLORS[k.tag]||BRONZE,!!cleared);
+      let label='['+k.tag+'] '+k.name;
+      if(label.length>18) label=label.slice(0,17);
+      const fs=Math.max(7,Math.min(10,22*z));
+      const tagTxt='['+k.tag+'] ';
+      c.font='bold '+fs+'px Georgia,serif';
+      const pw=c.measureText(label).width+10, ph=fs+7;
+      let bx=p.x; if(W) bx=Math.max(pw/2+2,Math.min(W-pw/2-2,bx));
+      const by=p.y-s*1.9-ph/2;
+      c.fillStyle='rgba(12,9,5,0.88)';
+      rr(c,bx-pw/2,by-ph/2,pw,ph,3); c.fill();
+      c.strokeStyle='rgba(201,162,39,0.65)'; c.lineWidth=1;
+      rr(c,bx-pw/2+1,by-ph/2+1,pw-2,ph-2,2); c.stroke();
+      c.textAlign='left'; c.textBaseline='middle';
+      let tx=bx-pw/2+5;
+      c.fillStyle=TAG_COLORS[k.tag]||'#f0d98a';
+      c.fillText(tagTxt,tx,by+1); tx+=c.measureText(tagTxt).width;
+      c.fillStyle='#f5eedd';
+      c.fillText(label.slice(tagTxt.length),tx,by+1);
+      c.textAlign='center';
+    } else {
+      const s=Math.max(14,Math.min(40,(20+k.lvl*1.2)*z+8));
+      drawCityIcon(c,p.x,p.y,s,{ruined:!!cleared, tag:k.tag, lvl:k.lvl});
+      if(cleared){ // smoke wisp on conquered keeps
+        c.strokeStyle='rgba(200,200,200,0.5)'; c.lineWidth=2;
+        c.beginPath(); c.moveTo(p.x,p.y-s*1.8);
+        c.quadraticCurveTo(p.x+4,p.y-s*2.4+((m.t*2)%10),p.x-3,p.y-s*3); c.stroke();
+      }
+      const plq=drawPlaque(c,p.x,p.y+s*2.15,'['+k.tag+'] '+k.name,{fs:kfs,color:TAG_COLORS[k.tag]||'#f0d98a',clampW:W});
+      drawLevelBadge(c,p.x,p.y+s*2.15+plq.h/2+8,k.lvl,Math.max(7,kfs*0.9));
+    }
+    m.drawn.push({id:k.id,sx:p.x,sy:p.y});
+  }
+  // player city at world center
+  {
+    const p=w2s(WORLD_CX,WORLD_CY);
+    if(far){
+      const s=11, pr=s*2.3;
+      c.strokeStyle='rgba(232,200,106,0.65)'; c.lineWidth=2;
+      c.beginPath(); c.arc(p.x,p.y,pr,0,7); c.stroke();
+      drawKeepMini(c,p.x,p.y,s,GOLD_L,false);
+      const label=(S.kingdomName||'Troy'), fs=8;
+      c.font='bold '+fs+'px Georgia,serif';
+      const pw=c.measureText(label).width+10, ph=fs+7;
+      let bx=p.x; if(W) bx=Math.max(pw/2+2,Math.min(W-pw/2-2,bx));
+      const by=p.y-s*1.9-ph/2;
+      c.fillStyle='rgba(12,9,5,0.88)';
+      rr(c,bx-pw/2,by-ph/2,pw,ph,3); c.fill();
+      c.strokeStyle='rgba(201,162,39,0.65)'; c.lineWidth=1;
+      rr(c,bx-pw/2+1,by-ph/2+1,pw-2,ph-2,2); c.stroke();
+      c.fillStyle='#f0d98a'; c.textAlign='center'; c.textBaseline='middle';
+      c.fillText(label,bx,by+1);
+    } else {
+    const s=Math.max(18,Math.min(38,24*z+10));
+    // golden ring highlight (gentle pulse)
+    const pr=s*2.3+Math.sin(m.t/14)*3;
+    c.strokeStyle='rgba(232,200,106,'+(0.65+0.25*Math.sin(m.t/14))+')';
+    c.lineWidth=3; c.beginPath(); c.arc(p.x,p.y,pr,0,7); c.stroke();
+    c.strokeStyle='rgba(94,58,26,0.8)'; c.lineWidth=1.5;
+    c.beginPath(); c.arc(p.x,p.y,pr+4,0,7); c.stroke();
+    drawCityIcon(c,p.x,p.y,s,{roof:GOLD_L,lvl:25});
+    const pfs=Math.min(14,kfs+1.5);
+    drawPlaque(c,p.x,p.y-s*2.3,(S.kingdomName||'Troy'),{fs:pfs,clampW:W});
+    }
+    m.drawn.push({id:'player',sx:p.x,sy:p.y});
+  }
+  drawMarches(c,now);
+  drawAIMarches(c);
+  // live coordinates readout in the top bar
+  const co=$('#wm-coords');
+  if(co) co.textContent='X:'+Math.round(m.cam.x)+' Y:'+Math.round(m.cam.y);
+  // selection ring
+  if(m.sel){
+    const e=m.drawn.find(e=>e.id===m.sel);
+    if(e){
+      c.strokeStyle='#e8c86a'; c.lineWidth=2.5; c.setLineDash([6,4]);
+      c.beginPath(); c.arc(e.sx,e.sy,30,0,7); c.stroke(); c.setLineDash([]);
+    }
+  }
+}
+function updateWorldFeed(){
+  const el=$('#wm-feed'); if(!el||!S.world) return;
+  el.innerHTML=S.world.feed.slice(0,4).map(f=>'<div class="wf-row">'+esc(f.txt)+'</div>').join('')||
+    '<div class="wf-row">The world stirs…</div>';
+  const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v; };
+  set('#wm-r-food', fmtN(S.res.food)); set('#wm-r-wood', fmtN(S.res.wood));
+  set('#wm-r-stone', fmtN(S.res.stone)); set('#wm-r-gold', fmtN(S.res.gold));
+  set('#wm-pow', 'Power '+fmtN(armyPower()));
+}
+/* Bottom-sheet panel for the tapped entity. Buttons wire to existing
+   Game functions: openComposer (march/gather), sendScout (25 gold). */
+function selectWorldEntity(id){
+  WMAP.sel=id;
+  const el=$('#wm-sheet');
+  if(!id){ el.classList.remove('open'); el.innerHTML=''; drawWorld(); return; }
+  let html='';
+  if(id==='player'){
+    html='<h3>'+esc(S.kingdomName||'Troy')+' <span class="small">· your capital</span></h3>'+
+      '<div class="small">Palace Lv '+(S.bld.palace||1)+' · '+fmtN(armyTotal())+' troops · Power '+fmtN(armyPower())+'</div>'+
+      '<div class="wm-actions"><button class="btn small" onclick="Game.tab(\'city\')">Manage City</button></div>';
+  } else {
+    const n=NODE_BY_ID[id]; if(!n){ el.classList.remove('open'); return; }
+    const rec=S.nodes[id]||{};
+    const cleared=!!rec.cleared;
+    const march=S.marches.find(x=>x.nodeId===id);
+    let title=n.name, sub='';
+    if(n.kind==='gather'){
+      sub='Resource site · '+RES_NAME[n.res];
+    } else if(n.kind==='ak'){
+      const k=S.world.kingdoms.find(k=>k.id===id);
+      sub='Rival kingdom · Level '+n.lvl+' · Power '+fmtN(k?k.power:0)+(n.tag?' · Alliance ['+n.tag+']':'');
+    } else {
+      sub=(n.kind==='camp'?'Barbarian camp':n.kind==='ruin'?'Ruin':n.kind==='boss'?'FINAL BATTLE':'City')+(n.tier?' · Threat tier '+n.tier+' of 5':'');
+    }
+    let gstr='';
+    if(n.kind!=='gather'){
+      const g=n.garrison;
+      gstr='<div class="small" style="margin:4px 0"><b>Garrison:</b> '+
+        (rec.scouted?esc(TROOP_ORDER.filter(t=>g[t]>0).map(t=>g[t]+' '+TROOPS[t].name).join(', ')):'<i>Unknown</i> — send scouts to reveal.')+'</div>';
+    }
+    let btns='';
+    if(march){
+      btns='<div class="small">March en route — '+(march.phase==='out'?'arrives':'returning')+'.</div>';
+    } else if(cleared){
+      btns='<div class="small" style="color:#9ab86a">Conquered.</div>';
+    } else if(n.kind==='gather'){
+      btns='<button class="btn" onclick="Game.openComposer(\''+id+'\')">Send Gatherers</button>';
+    } else {
+      const scoutBtn=rec.scouted?'':
+        (rec.scoutDoneAt?'<div class="small">Scouts en route…</div>'
+        :'<button class="btn small" '+(S.res.gold<25?'disabled':'')+' onclick="Game.sendScout(\''+id+'\')">Scout (25 gold)</button>');
+      btns=scoutBtn+'<button class="btn red" onclick="Game.openComposer(\''+id+'\')">Attack</button>';
+    }
+    html='<h3>'+esc(title)+'</h3><div class="small">'+esc(sub)+'</div>'+gstr+
+      '<div class="wm-actions">'+btns+'<button class="btn ghost small" onclick="Game.wmCloseSheet()">Close</button></div>';
+  }
+  el.innerHTML=html; el.classList.add('open');
+  drawWorld();
+}
 const GATHER_TIME = 45;        // seconds spent gathering on site
 const GATHER_YIELD = 12;       // resources per troop per trip
 
@@ -574,6 +1566,8 @@ function defaultState(){
     daily:{lastDay:'', streak:0},
     victory:false, victoryShown:false,
     seenWelcome:false,
+    kingdomName:'Troy',          // player kingdom name (world-map banner)
+    world:null,                  // seeded AI world {kingdoms, extra, tick, feed}; generated lazily
     marchSeq:1
   };
 }
@@ -915,7 +1909,7 @@ function resolveAttackMarch(m, silent){
     lootGranted = {...(node.loot||{})};
     grantRes(lootGranted, true);
     const rec = S.nodes[m.nodeId]||{};
-    rec.cleared = true; S.nodes[m.nodeId] = rec;
+    rec.cleared = true; rec.clearedAt = nowMs(); S.nodes[m.nodeId] = rec;
     addPlayerXP(XP_BATTLE_WIN);
     // relics: first clear of a ruin grants its unique relic
     if(node.kind==='ruin'){
@@ -1613,34 +2607,6 @@ function nodeIcon(n){
   if(n.kind==='boss') return 'skull';
   return 'ruin';
 }
-function renderMap(){
-  let html='';
-  if(S.marches.length){
-    html+='<h2 class="sec">Marches ('+S.marches.length+'/2)</h2>';
-    for(const m of S.marches){
-      const node=NODE_BY_ID[m.nodeId];
-      let status='';
-      if(m.phase==='out') status='arrives in '+fmtT((m.arriveAt-nowMs())/1000);
-      else if(m.phase==='gather') status='gathering — '+fmtT((m.gatherAt-nowMs())/1000);
-      else status='returning — '+fmtT((m.returnAt-nowMs())/1000);
-      const tstr=TROOP_ORDER.filter(t=>m.troops[t]>0).map(t=>m.troops[t]+' '+TROOPS[t].name).join(', ');
-      html+='<div class="marchbar">'+icon('pin')+' '+esc(tstr)+(m.hero?' + Theron':'')+' → '+esc(node.name)+
-            '<br><span style="color:var(--bronze-l)">'+status+'</span></div>';
-    }
-  }
-  html+='<h2 class="sec">The World</h2><div id="mapwrap">'+mapBG();
-  for(const n of NODES){
-    const cleared=S.nodes[n.id]&&S.nodes[n.id].cleared;
-    html+='<button class="mnode '+n.kind+(cleared?' done':'')+'" style="left:'+n.x+'%;top:'+n.y+'%" onclick="Game.openNode(\''+n.id+'\')">'+
-      '<span class="mn-ic">'+icon(nodeIcon(n))+'</span>'+
-      (n.tier?'<span class="mn-tier">'+n.tier+'</span>':'')+
-      '<span class="mn-lb">'+esc(n.name)+'</span></button>';
-  }
-  html+='<div id="home-marker" style="left:47%;top:41%"><div class="troy">⚔ TROY ⚔</div></div>';
-  html+='</div><div class="small" style="margin-top:6px">Tap a site to gather, raid a camp, or conquer a city. Destroy the <b>Bastion of Warlord Skaros</b> to win the game.</div>';
-  $('#view-map').innerHTML=html;
-}
-
 function renderArmy(){
   let html='<h2 class="sec">Your Army</h2>';
   html+='<div class="card center"><div style="font-size:15px">'+
@@ -1784,6 +2750,7 @@ function renderQuests(){
 function render(){
   applySkin();
   renderHeader(); renderHint(); renderTabs();
+  document.body.classList.toggle('on-map', UI.tab==='map');
   const views=['city','map','army','hero','quests'];
   for(const v of views) $('#view-'+v).classList.toggle('active', UI.tab===v);
   if(UI.tab==='city') renderCity();
@@ -2046,6 +3013,10 @@ const Game={
   backToReport(){ backToReport(); },
   closeModal(){ closeModal(); },
   enterTitle(){ const t=$('#titlescreen'); if(t) t.style.display='none'; },
+  wmZoom(f){ if(WMAP){ WMAP.cam.z*=f; clampCam(); drawWorld(); } },
+  wmCenter(){ if(WMAP){ WMAP.cam.x=WORLD_CX; WMAP.cam.y=WORLD_CY; WMAP.cam.z=0.35; drawWorld(); } },
+  wmSaveName(){ const el=$('#wm-kname'); if(el&&S){ S.kingdomName=el.value.trim().slice(0,24)||'Troy'; el.value=S.kingdomName; save(); drawWorld(); toast('Kingdom renamed to '+esc(S.kingdomName)+'.'); } },
+  wmCloseSheet(){ selectWorldEntity(null); },
   setSkin(id){ setSkin(id); },
   setTitle(id){ setTitle(id); },
   equipTitle(id){ setTitle(id); closeModal(); }
@@ -2061,6 +3032,7 @@ function tick(){
   tickTraining();
   tickEvents();
   tickScouts();
+  tickWorld();
   checkHeroUnlocks();
   const reports=tickMarches(false);
   if(reports.length){
@@ -2079,6 +3051,7 @@ function tick(){
 function init(){
   const loaded=load();
   S = loaded || defaultState();
+  ensureWorld();
   UI.trainDraft={spearman:10,archer:10,cavalry:10};
   UI.practice={troops:{spearman:5,archer:5,cavalry:5},preset:'mirror'};
   if(!loaded){
