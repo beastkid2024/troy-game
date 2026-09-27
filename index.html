@@ -116,6 +116,15 @@ h2.sec{font-size:16px;letter-spacing:2px;color:var(--red-d);border-bottom:2px so
   box-shadow:0 8px 40px #000;animation:fadein .25s}
 #modal h3{margin:0 0 8px;color:var(--red-d);letter-spacing:1px;font-size:18px}
 #modal .flavor{font-style:italic;color:var(--ink-l);font-size:13px;margin-bottom:10px}
+/* ---------- title screen ---------- */
+#titlescreen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:#160d06;overflow:hidden}
+#titlescreen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#titlescreen .ts-fallback{position:absolute;top:14%;width:100%;text-align:center;font-family:Georgia,serif;
+  font-size:72px;letter-spacing:8px;color:#c9973f;text-shadow:0 3px 0 #5b3a12,0 6px 18px #000}
+#titlescreen .ts-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,6,2,.88) 0%,rgba(12,6,2,0) 50%)}
+#titlescreen .ts-content{position:absolute;bottom:7%;left:0;right:0;text-align:center}
+#titlescreen .ts-sub{color:#e8d9b8;font-family:Georgia,serif;font-style:italic;font-size:15px;margin-bottom:14px;text-shadow:0 2px 6px #000}
+.ts-enter{font-size:20px;padding:14px 46px;box-shadow:0 4px 18px rgba(0,0,0,.6)}
 /* ---------- toast ---------- */
 #toast-root{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);width:100%;max-width:500px;
   z-index:120;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;padding:0 14px}
@@ -142,6 +151,32 @@ table.rep{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-
 table.rep td,table.rep th{border:1px solid var(--bronze-d);padding:6px 8px;text-align:left}
 table.rep th{background:var(--bronze);color:#2c1f0e}
 .winbanner{text-align:center;font-size:22px;font-weight:bold;letter-spacing:2px;margin:6px 0}
+.streak{display:flex;justify-content:center;gap:6px;margin:8px 0}
+/* ---------- battle replay viewer ---------- */
+.wr-field{display:grid;grid-template-columns:1fr 46px 1fr;gap:6px;align-items:stretch;margin:8px 0}
+.wr-side{background:rgba(44,31,14,.06);border:2px solid var(--bronze-d);border-radius:10px;padding:8px 6px}
+.wr-side.atk{border-color:var(--gold)}
+.wr-name{font-size:12px;font-weight:bold;text-align:center;color:var(--red-d);margin-bottom:6px;
+  font-family:Arial,sans-serif;min-height:30px;display:flex;align-items:center;justify-content:center}
+.wr-row{display:flex;align-items:center;gap:6px;margin:6px 0;font-family:Arial,sans-serif}
+.wr-row .ic svg{width:22px;height:22px;flex:0 0 22px}
+.wr-count{font-weight:bold;font-size:14px;min-width:32px;text-align:right}
+.wr-hp{flex:1;height:10px;background:#cbbd97;border:1px solid var(--bronze-d);border-radius:6px;overflow:hidden}
+.wr-hp>div{height:100%;width:100%;background:linear-gradient(90deg,#a83a3a,#e07a5f);transition:width .3s}
+.wr-side.def .wr-hp>div{background:linear-gradient(90deg,#b8860b,#e8c35a)}
+.wr-mid{display:flex;align-items:center;justify-content:center}
+#wr-clash{font-size:30px;line-height:1}
+#wr-clash.hit{animation:wrclash .45s}
+@keyframes wrclash{0%{transform:scale(1) rotate(0)}40%{transform:scale(1.6) rotate(-12deg)}100%{transform:scale(1) rotate(0)}}
+.wr-side.flash{animation:wrflash .5s}
+@keyframes wrflash{0%{background:rgba(168,58,58,.55)}100%{background:rgba(44,31,14,.06)}}
+.wr-controls{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.wr-controls .btn{min-width:70px}
+#wr-result{text-align:center;margin:8px 0;font-family:Arial,sans-serif}
+.sdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--bronze-d);display:flex;
+  align-items:center;justify-content:center;font-family:Arial,sans-serif;font-size:12px;
+  font-weight:bold;color:var(--ink-l);background:var(--marble-d)}
+.sdot.on{background:radial-gradient(circle at 35% 30%,var(--gold),var(--bronze-d));color:#2c1f0e}
 .hero-portrait{width:84px;height:84px;border-radius:50%;border:3px solid var(--gold);
   background:radial-gradient(circle at 35% 30%,#a83a3a,#571111);display:flex;align-items:center;
   justify-content:center;margin:0 auto 8px}
@@ -169,6 +204,15 @@ hr.bronze{border:none;border-top:2px solid var(--bronze);margin:10px 0}
   </main>
   <nav id="tabbar"></nav>
   <div id="modal-root"><div id="modal"></div></div>
+  <div id="titlescreen">
+    <div class="ts-fallback">TROY</div>
+    <img src="troy-cover.webp" alt="" onerror="this.style.display='none'">
+    <div class="ts-shade"></div>
+    <div class="ts-content">
+      <div class="ts-sub">Build your city. Raise your army. Take the throne.</div>
+      <button class="btn ts-enter" onclick="Game.enterTitle()">⚔ Enter Troy</button>
+    </div>
+  </div>
   <div id="toast-root"></div>
 </div>
 <script>
@@ -237,7 +281,7 @@ const NODES = [
   {id:'marble',  name:'Marble Quarry',  kind:'gather', res:'stone', x:84, y:44, march:40, flavor:'White stone sleeps in the hill, waiting for walls.'},
   {id:'goldmine',name:'Gold Mine',      kind:'gather', res:'gold',  x:70, y:72, march:50, flavor:'A vein of sun-gold glints in the torchlight.'},
   {id:'camp1', name:'Jackal Scouts', kind:'camp', tier:1, x:36, y:36, march:30,
-    garrison:{spearman:8}, loot:{food:150, wood:100, gold:40},
+    garrison:{spearman:4}, loot:{food:120, wood:80, gold:30},
     flavor:'Mangy outriders sniffing around Trojan land.'},
   {id:'camp2', name:'Red Sand Raiders', kind:'camp', tier:2, x:56, y:24, march:35,
     garrison:{spearman:12, archer:8}, loot:{food:200, wood:180, stone:80, gold:80},
@@ -295,21 +339,23 @@ function heroAtkBonus(lvl){ return lvl>=4 ? 1.15 : 1; }
 function heroLossRed(lvl){ return lvl>=2 ? 0.85 : 1; }
 function heroMarchMult(lvl){ return lvl>=6 ? 0.75 : 1; }
 
+/* Quest chain: combat lands fast (quest 3 ≈ 2-3 min in), builder quests follow.
+   8 quests total; each claim grants XP_QUEST player XP on top of the reward. */
 const QUESTS = [
   {id:'q1', name:'Foundations of Troy', desc:'Build a Farm.', reward:{food:200},
    check:()=> S.bld.farm>=1},
-  {id:'q2', name:'Timber Rights', desc:'Build a Lumber Camp.', reward:{wood:200},
-   check:()=> S.bld.lumber>=1},
-  {id:'q3', name:'Stone Speaks', desc:'Build a Quarry.', reward:{stone:150},
-   check:()=> S.bld.quarry>=1},
-  {id:'q4', name:'First Levy', desc:'Train 10 Spearmen.', reward:{gold:150, heroxp:60},
-   check:()=> S.stats.trained>=10},
-  {id:'q5', name:'A Palace Worthy', desc:'Upgrade the Palace to level 2.', reward:{wood:250},
-   check:()=> S.bld.palace>=2},
-  {id:'q6', name:'Reap the Land', desc:'Gather resources from any site on the world map.', reward:{food:200},
-   check:()=> S.stats.gathers>=1},
-  {id:'q7', name:'Teeth of the Jackal', desc:'Destroy the Jackal Scouts camp.', reward:{gold:100, heroxp:120},
+  {id:'q2', name:'Raise the Barracks', desc:'Build a Barracks and train 5 Spearmen.', reward:{gold:150, heroxp:60},
+   check:()=> S.stats.trained>=5},
+  {id:'q3', name:'Teeth of the Jackal', desc:'Destroy the Jackal Scouts camp on the world map.', reward:{gold:100, heroxp:120},
    check:()=> !!(S.nodes.camp1 && S.nodes.camp1.cleared)},
+  {id:'q4', name:'Timber Rights', desc:'Build a Lumber Camp.', reward:{wood:200},
+   check:()=> S.bld.lumber>=1},
+  {id:'q5', name:'Stone Speaks', desc:'Build a Quarry.', reward:{stone:150},
+   check:()=> S.bld.quarry>=1},
+  {id:'q6', name:'A Palace Worthy', desc:'Upgrade the Palace to level 2.', reward:{wood:250},
+   check:()=> S.bld.palace>=2},
+  {id:'q7', name:'Reap the Land', desc:'Gather resources from any site on the world map.', reward:{food:200},
+   check:()=> S.stats.gathers>=1},
   {id:'q8', name:'The Render Falls', desc:'Defeat Warlord Skaros.', reward:{},
    check:()=> !!(S.nodes.skaros && S.nodes.skaros.cleared)}
 ];
@@ -333,7 +379,8 @@ function defaultState(){
     nodes:{},                 // id -> {cleared:true}
     marches:[],               // {id, nodeId, troops, hero, phase, arriveAt, gatherAt, returnAt, marchSecs}
     stats:{trained:0, battles:0, wins:0, gathers:0, raidsRepelled:0},
-    raidsOn:false, nextRaidAt:0,
+    raidsOn:false, nextRaidAt:0, raidWarnAt:0, raidWarned:false, shieldUntil:0,
+    daily:{lastDay:'', streak:0},
     victory:false, victoryShown:false,
     seenWelcome:false,
     marchSeq:1
@@ -522,11 +569,17 @@ function simBattle(atk, atkHeroLvl, def, defHeroLvl, opts){
   const majority = o=>{ let m=TROOP_ORDER[0]; for(const t of TROOP_ORDER) if(o[t]>o[m]) m=t; return m; };
   const mA = majority(A), mD = majority(D);
   const mult = (t, vsMaj)=> (TROOPS[t].strongVs===vsMaj) ? 1.5 : 1;
-  const atkMult = (atkHeroLvl>0 ? playerAtkMult() : 1) * (atkHeroLvl>=4 ? heroAtkBonus(atkHeroLvl) : 1);
+  const atkMult = (atkHeroLvl>0 ? playerAtkMult() : 1) * (atkHeroLvl>=4 ? heroAtkBonus(atkHeroLvl) : 1) * (opts.atkDmgMult||1);
   const defMult = (defHeroLvl>0 ? playerAtkMult() : 1) * (defHeroLvl>=4 ? heroAtkBonus(defHeroLvl) : 1) * (opts.defAtkMult||1);
   const atkLossRed = atkHeroLvl>=2 ? heroLossRed(atkHeroLvl) : 1;
   const defLossRed = defHeroLvl>=2 ? heroLossRed(defHeroLvl) : 1;
   const A0={...A}, D0={...D};
+  // Replay frames: raw float snapshots (round 0 = initial, then after each round).
+  // Kept unrounded so Math.floor() of the final frame matches atkLeft/defLeft exactly.
+  const snap=()=>({a:{spearman:A.spearman,archer:A.archer,cavalry:A.cavalry},
+                   d:{spearman:D.spearman,archer:D.archer,cavalry:D.cavalry},
+                   hpA:hpOf(A),hpD:hpOf(D)});
+  const frames=[snap()];
   let rounds=0;
   while(rounds<50){
     if(sum(A)<=0 || sum(D)<=0) break;
@@ -540,6 +593,7 @@ function simBattle(atk, atkHeroLvl, def, defHeroLvl, opts){
     const fA = hA>0 ? Math.max(0, 1-(pD*mitA*atkLossRed)/hA) : 0;
     const fD = hD>0 ? Math.max(0, 1-(pA*mitD*defLossRed)/hD) : 0;
     for(const t of TROOP_ORDER){ A[t]*=fA; D[t]*=fD; }
+    frames.push(snap());
     rounds++;
   }
   const hpAFrac = hpOf(A0)>0 ? hpOf(A)/hpOf(A0) : 0;
@@ -551,7 +605,8 @@ function simBattle(atk, atkHeroLvl, def, defHeroLvl, opts){
   const killed = TROOP_ORDER.reduce((s,t)=>s+defLost[t],0);
   return {win:win, rounds:rounds, atkLost:atkLost, defLost:defLost,
           atkLeft:{spearman:Math.floor(A.spearman), archer:Math.floor(A.archer), cavalry:Math.floor(A.cavalry)},
-          xp: 12*killed};
+          defLeft:{spearman:Math.floor(D.spearman), archer:Math.floor(D.archer), cavalry:Math.floor(D.cavalry)},
+          xp: 12*killed, replay:frames};
 }
 
 /* ---------------- marches ---------------- */
@@ -653,7 +708,14 @@ function armyPower(troopsObj){
   const o = troopsObj||S.troops;
   return TROOP_ORDER.reduce((s,t)=>s+Math.floor(o[t]||0)*(TROOPS[t].atk+TROOPS[t].def),0);
 }
-function scheduleNextRaid(fromMs){ S.nextRaidAt = fromMs + 5*60*1000; }
+// First warband strikes ~10 min after raids unlock; afterwards every 20-40 min
+// (randomized). A 2-minute warning precedes each raid so the player can garrison troops.
+function scheduleNextRaid(fromMs, first){
+  const mins = first ? 10 : 20 + Math.random()*20;
+  S.nextRaidAt = fromMs + mins*60*1000;
+  S.raidWarnAt = S.nextRaidAt - 2*60*1000;
+  S.raidWarned = false;
+}
 
 // Walls contribute militia: folded into the spearman count at 0.75 power each.
 function raidDefenseWithMilitia(){
@@ -663,15 +725,32 @@ function raidDefenseWithMilitia(){
 }
 function tickRaid(silent){
   if(!S.raidsOn) return null;
-  if(nowMs() < S.nextRaidAt) return null;
+  if(!S.raidWarnAt) S.raidWarnAt = S.nextRaidAt - 2*60*1000;   // normalize old saves
+  const now = nowMs();
+  if(S.shieldUntil && now < S.shieldUntil){
+    // Beginner shield: park the raid clock until the shield drops.
+    if(S.nextRaidAt && S.nextRaidAt < now) scheduleNextRaid(S.shieldUntil, false);
+    return null;
+  }
+  // Warning phase: ~2 min heads-up in live sessions (offline raids resolve silently).
+  if(!silent && !S.raidWarned && now>=S.raidWarnAt && now<S.nextRaidAt){
+    S.raidWarned = true; save();
+    toast('⚠ Warband approaching! Raiders strike Troy in ~2 minutes — keep troops garrisoned!');
+    return {warn:true};
+  }
+  if(now < S.nextRaidAt) return null;
   const def = raidDefenseWithMilitia();
   const realDef = {spearman:troopCount('spearman'), archer:troopCount('archer'), cavalry:troopCount('cavalry')};
   const totalTroops = armyTotal();
-  const factor = silent ? 0.75 : (0.6+Math.random()*0.3);
-  const raidN = Math.max(6, Math.round(totalTroops*0.75*(factor/0.75)));
+  const jitter = silent ? 1 : (0.85+Math.random()*0.3);
+  // Warband strength scales with player level + garrison size: beatable if you
+  // prepare (troops home, Walls raised), costly if you don't.
+  const raidN = Math.max(5, Math.round((2 + S.player.level + totalTroops*0.3) * jitter));
   const raid = {spearman:raidN, archer:0, cavalry:0};
   const defHeroLvl = heroHome() ? heroLevel() : 0;
-  const r = simBattle(raid, 0, def, defHeroLvl, {});
+  // Walls blunt the assault: each Walls level = -6% attacker damage.
+  const wallDmgMult = Math.max(0.4, 1 - 0.06*(S.bld.walls||0));
+  const r = simBattle(raid, 0, def, defHeroLvl, {atkDmgMult:wallDmgMult});
   S.stats.battles++;
   // scale militia-inflated losses back to real troops proportionally
   const militia = def.militia||0;
@@ -694,7 +773,7 @@ function tickRaid(silent){
     msg={title:'Troy Was Raided!', won:false, report:r, militia:militia, loss:loss,
          text:'Raiders broke through and plundered your stores (-8% of each resource). Raise your Walls and keep troops garrisoned!'};
   }
-  scheduleNextRaid(nowMs());
+  scheduleNextRaid(nowMs(), false);
   checkQuests(); save();
   return msg;
 }
@@ -723,12 +802,65 @@ function claimQuest(id){
   addPlayerXP(XP_QUEST);
   rw.push('+'+XP_QUEST+' XP');
   if(id==='q4' && !S.raidsOn){
-    S.raidsOn=true; scheduleNextRaid(nowMs());
-    setTimeout(()=>toast('⚠ Scouts report raiders massing. They will test your walls every few minutes — keep troops home!'), 600);
+    S.raidsOn=true; scheduleNextRaid(nowMs(), true);
+    S.shieldUntil = nowMs() + 24*60*60*1000;   // beginner shield: 24h of peace (online version: 3 days)
+    setTimeout(()=>toast('🛡 Beginner shield: raiders cannot strike for 24 hours. After that, warbands come every 20–40 min — keep troops home and raise your Walls!'), 600);
   }
   if(id==='q8'){ S.victory=true; }
   toast('Quest complete: '+q.name+' — '+rw.join(', '));
   save(); render();
+}
+
+/* ---------------- daily login tribute ----------------
+   Streak tracked by local calendar-day string (not timestamp). First load of a
+   new day grants an escalating 7-day streak reward; missing a day resets to 1. */
+const DAILY_TRIBUTE = [
+  {food:150, wood:150},
+  {food:200, wood:200, stone:100},
+  {food:250, wood:250, stone:150, gold:100},
+  {food:300, wood:300, stone:200, gold:150, xp:60},
+  {food:350, wood:350, stone:250, gold:200, xp:80},
+  {food:400, wood:400, stone:300, gold:250, xp:100},
+  {food:500, wood:500, stone:400, gold:350, xp:150, heroxp:60}
+];
+function tributeDesc(rw){
+  const p=[];
+  for(const k of RES) if(rw[k]) p.push('+'+fmtN(rw[k])+' '+RES_NAME[k]);
+  if(rw.xp) p.push('+'+rw.xp+' player XP');
+  if(rw.heroxp) p.push('+'+rw.heroxp+' hero XP');
+  return p.join(', ');
+}
+function dayString(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dailyLogin(){
+  if(!S.daily) S.daily={lastDay:'', streak:0};
+  const now=new Date(), today=dayString(now);
+  if(S.daily.lastDay===today) return null;
+  const yesterday=dayString(new Date(now.getTime()-86400000));
+  S.daily.streak = (S.daily.lastDay===yesterday) ? Math.min(7, S.daily.streak+1) : 1;
+  S.daily.lastDay = today;
+  const rw = DAILY_TRIBUTE[S.daily.streak-1];
+  const res={}; for(const k of RES) if(rw[k]) res[k]=rw[k];
+  grantRes(res, true);
+  if(rw.xp) addPlayerXP(rw.xp);
+  if(rw.heroxp) S.hero.xp+=rw.heroxp;
+  save();
+  return {day:S.daily.streak, desc:tributeDesc(rw)};
+}
+function dailyTributeModal(d, info){
+  let dots='';
+  for(let i=1;i<=7;i++) dots+='<span class="sdot'+(i<=d.day?' on':'')+'">'+i+'</span>';
+  let html='<div class="winbanner" style="color:var(--gold);text-shadow:0 2px 0 #000">🎁 DAILY TRIBUTE 🎁</div>'+
+    '<div class="flavor">The people of Troy lay gifts at your gate.'+(d.day>=7?' The gods themselves smile upon your reign!':'')+'</div>'+
+    '<div class="streak">'+dots+'</div>'+
+    '<table class="rep"><tr><th>Day '+d.day+' tribute</th><td>'+esc(d.desc)+'</td></tr></table>'+
+    '<div class="small center">Return tomorrow to grow the streak — miss a day and it falls back to Day 1.</div>';
+  if(info && info.events.length)
+    html+='<hr class="bronze"><div class="small"><b>While you were away ('+fmtT(info.elapsed)+'):</b></div>'+
+          '<ul class="small">'+info.events.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>';
+  html+='<br><div class="center"><button class="btn" onclick="Game.closeModal()">Accept Tribute</button></div>';
+  openModal(html);
 }
 
 /* ---------------- offline progress ---------------- */
@@ -803,6 +935,11 @@ function renderHeader(){
   ).join('');
 }
 function renderHint(){
+  // Raid warning takes over the hint bar with a live countdown.
+  if(S.raidsOn && S.raidWarnAt && nowMs()>=S.raidWarnAt && nowMs()<S.nextRaidAt){
+    $('#hinttext').textContent = '⚠ Warband approaching! Raid in '+fmtT((S.nextRaidAt-nowMs())/1000)+' — keep troops garrisoned in Troy!';
+    return;
+  }
   const cq = currentQuest();
   $('#hinttext').textContent = cq
     ? ('Quest '+(QUESTS.indexOf(cq.q)+1)+'/'+QUESTS.length+': '+cq.q.desc+(cq.st==='claimable'?' — reward ready! Open Quests.':''))
@@ -857,6 +994,9 @@ function renderCity(){
       '<div style="flex:1"><div class="bld-name">'+esc(cq.q.name)+'</div><div class="small">'+esc(cq.q.desc)+'</div>'+
       (cq.st==='claimable'?'<button class="btn small" onclick="Game.tab(\'quests\')">Claim Reward</button>':'')+
       '</div></div></div>';
+  }
+  if(S.shieldUntil && nowMs()<S.shieldUntil){
+    html+='<div class="card" style="border-color:var(--bronze)"><div class="small center">🛡 <b>Beginner Shield</b> — raiders cannot strike for '+fmtT((S.shieldUntil-nowMs())/1000)+'</div></div>';
   }
   html+='<h2 class="sec">City of Troy</h2>';
   for(const k of BUILD_ORDER) html+=buildingCard(k);
@@ -1063,6 +1203,7 @@ function lossRow(L){
 }
 function battleReportModal(res){
   const r=res.report;
+  LASTW={kind:'battle', res:res, atkLabel:'Your Army', defLabel:res.nodeName+' (Enemy)'};
   let lootHtml='';
   if(res.won && res.loot && Object.keys(res.loot).length)
     lootHtml='<tr><th>Loot</th><td>'+Object.keys(res.loot).map(k=>'+'+fmtN(res.loot[k])+' '+RES_NAME[k]).join(', ')+'</td></tr>';
@@ -1074,17 +1215,117 @@ function battleReportModal(res){
     (res.won?'<tr><th>Rewards</th><td>+'+XP_BATTLE_WIN+' player XP'+(res.heroXp?' · +'+res.heroXp+' hero XP':'')+'</td></tr>':'')+
     '</table>'+
     (res.won?'':'<div class="small">Tip: check the enemy garrison first — bring troops that counter it (Spearmen ☞ Cavalry, Archers ☞ Spearmen, Cavalry ☞ Archers).</div><br>')+
-    '<div class="center"><button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+    '<div class="center"><button class="btn" onclick="Game.watchBattle()">⚔ Watch Battle</button> '+
+    '<button class="btn" onclick="Game.closeModal()">Continue</button></div>');
 }
 function raidModal(msg){
   const r=msg.report;
+  LASTW={kind:'raid', res:msg, atkLabel:'Warband Raiders', defLabel:'Troy (Your Army)'};
   openModal('<div class="winbanner" style="color:'+(msg.won?'#4a6a28':'var(--red)')+'">'+esc(msg.title)+'</div>'+
     '<div class="flavor">'+esc(msg.text)+'</div>'+
     '<table class="rep"><tr><th>Raiders lost</th><td>'+lossRow(r.atkLost)+'</td></tr>'+
     '<tr><th>Your losses</th><td>'+lossRow(r.defLost)+'</td></tr>'+
     (msg.militia?'<tr><th>Militia (Walls)</th><td>'+msg.militia+' townsfolk fought beside your troops</td></tr>':'')+
     (msg.loss?'<tr><th>Plundered</th><td>'+Object.keys(msg.loss).filter(k=>msg.loss[k]>0).map(k=>'-'+fmtN(msg.loss[k])+' '+RES_NAME[k]).join(', ')+'</td></tr>':'')+
-    '</table><div class="center"><button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+    '</table><div class="center"><button class="btn" onclick="Game.watchBattle()">⚔ Watch Battle</button> '+
+    '<button class="btn" onclick="Game.closeModal()">Continue</button></div>');
+}
+/* ---------------- battle replay viewer ----------------
+   Replays the per-round frames recorded by simBattle — no re-simulation,
+   so the replay matches the report's outcome and losses exactly. */
+const WATCH={active:false,pack:null,i:0,playing:false,speed:1,timer:null};
+let LASTW=null;   // {kind:'battle'|'raid', res, atkLabel, defLabel} for the report on screen
+function stopWatch(){ if(WATCH.timer){ clearInterval(WATCH.timer); WATCH.timer=null; } WATCH.playing=false; }
+function watchSpeedMs(){ return WATCH.speed===4?220 : WATCH.speed===2?430 : 850; }
+function wrRow(side,t){
+  return '<div class="wr-row">'+icon(TROOPS[t].ic)+'<span class="wr-count" id="wr-'+side+'-'+t+'">0</span>'+
+    '<div class="wr-hp"><div id="wr-'+side+'-'+t+'-bar"></div></div></div>';
+}
+function paintWatchFrame(f, f0){
+  for(const t of TROOP_ORDER){
+    $('#wr-a-'+t).textContent=Math.floor(f.a[t]);
+    $('#wr-d-'+t).textContent=Math.floor(f.d[t]);
+    const fa=f0.hpA>0?Math.max(0,Math.min(1,f.hpA/f0.hpA)):0;
+    const fd=f0.hpD>0?Math.max(0,Math.min(1,f.hpD/f0.hpD)):0;
+    $('#wr-a-'+t+'-bar').style.width=(fa*100)+'%';
+    $('#wr-d-'+t+'-bar').style.width=(fd*100)+'%';
+  }
+  const rl=$('#wr-round'); if(rl) rl.textContent=WATCH.i;
+}
+function watchClash(ids){
+  for(const id of ids){
+    const el=$(id); if(!el) continue;
+    el.classList.remove('hit','flash'); void el.offsetWidth; el.classList.add(id==='#wr-clash'?'hit':'flash');
+  }
+}
+function watchBattleModal(pack){
+  const r=pack.res.report;
+  const frames=(r&&r.replay)||[];
+  stopWatch();
+  WATCH.active=true; WATCH.pack=pack; WATCH.i=0; WATCH.speed=1;
+  if(!frames.length){
+    openModal('<div class="winbanner" style="color:var(--red-d)">⚔ BATTLE REPLAY ⚔</div>'+
+      '<div class="small center">No replay was recorded for this battle.</div><br>'+
+      '<div class="center"><button class="btn" onclick="Game.backToReport()">Back to Report</button></div>');
+    return;
+  }
+  const rowsA=TROOP_ORDER.map(t=>wrRow('a',t)).join('');
+  const rowsD=TROOP_ORDER.map(t=>wrRow('d',t)).join('');
+  openModal('<div class="winbanner" style="color:var(--red-d)">⚔ BATTLE REPLAY ⚔</div>'+
+    '<div class="small center">Round <b id="wr-round">0</b> / '+r.rounds+'</div>'+
+    '<div class="wr-field">'+
+      '<div class="wr-side atk" id="wr-side-a"><div class="wr-name">'+esc(pack.atkLabel)+'</div>'+rowsA+'</div>'+
+      '<div class="wr-mid"><div id="wr-clash">⚔️</div></div>'+
+      '<div class="wr-side def" id="wr-side-d"><div class="wr-name">'+esc(pack.defLabel)+'</div>'+rowsD+'</div>'+
+    '</div>'+
+    '<div class="wr-controls">'+
+      '<button class="btn" id="wr-play" onclick="Game.watchToggle()">▶ Play</button>'+
+      '<button class="btn" id="wr-speed" onclick="Game.watchSpeed()">1×</button>'+
+      '<button class="btn" onclick="Game.watchSkip()">⏩ Result</button>'+
+    '</div>'+
+    '<div id="wr-result"></div>'+
+    '<div class="center"><button class="btn" onclick="Game.backToReport()">Back to Report</button></div>');
+  paintWatchFrame(frames[0], frames[0]);
+}
+function watchAdvance(){
+  const frames=WATCH.pack.res.report.replay;
+  if(WATCH.i>=frames.length-1){ watchFinish(); return; }
+  const prev=frames[WATCH.i];
+  WATCH.i++;
+  const cur=frames[WATCH.i];
+  paintWatchFrame(cur, frames[0]);
+  watchClash(['#wr-clash']);
+  if(cur.hpA<prev.hpA-1e-9) watchClash(['#wr-side-a']);
+  if(cur.hpD<prev.hpD-1e-9) watchClash(['#wr-side-d']);
+}
+function watchFinish(){
+  const frames=WATCH.pack.res.report.replay;
+  WATCH.i=frames.length-1;
+  paintWatchFrame(frames[WATCH.i], frames[0]);
+  stopWatch();
+  const pb=$('#wr-play'); if(pb) pb.textContent='▶ Play';
+  const won=WATCH.pack.res.won;
+  const rr=$('#wr-result');
+  if(rr) rr.innerHTML='<div style="color:'+(won?'#4a6a28':'var(--red)')+';font-size:17px;letter-spacing:1px">'+(won?'⚔ VICTORY ⚔':'☠ DEFEAT ☠')+'</div>'+
+    '<div class="small">Final losses match the battle report exactly.</div>';
+}
+function watchToggle(){
+  const frames=WATCH.pack.res.report.replay;
+  const pb=$('#wr-play');
+  if(WATCH.playing){ stopWatch(); if(pb) pb.textContent='▶ Play'; return; }
+  if(WATCH.i>=frames.length-1){ WATCH.i=0; paintWatchFrame(frames[0],frames[0]); const rr=$('#wr-result'); if(rr) rr.innerHTML=''; }
+  WATCH.playing=true; if(pb) pb.textContent='⏸ Pause';
+  WATCH.timer=setInterval(watchAdvance, watchSpeedMs());
+}
+function watchSpeedCycle(){
+  WATCH.speed = WATCH.speed===1?2 : WATCH.speed===2?4 : 1;
+  const sb=$('#wr-speed'); if(sb) sb.textContent=WATCH.speed+'×';
+  if(WATCH.playing){ clearInterval(WATCH.timer); WATCH.timer=setInterval(watchAdvance, watchSpeedMs()); }
+}
+function backToReport(){
+  stopWatch(); WATCH.active=false;
+  const p=LASTW; if(!p){ closeModal(); return; }
+  if(p.kind==='raid') raidModal(p.res); else battleReportModal(p.res);
 }
 function welcomeModal(){
   openModal('<div class="winbanner" style="color:var(--red-d)">TROY</div>'+
@@ -1124,7 +1365,13 @@ const Game={
   draftHero(){ if(UI.draft&&(heroHome()||UI.draft.hero)){ UI.draft.hero=!UI.draft.hero; renderComposer(); } },
   sendDraft(){ const d=UI.draft; if(d) sendMarch(d.nodeId,d.troops,d.hero); },
   claim(id){ claimQuest(id); },
-  closeModal(){ closeModal(); }
+  watchBattle(){ if(LASTW) watchBattleModal(LASTW); },
+  watchToggle(){ watchToggle(); },
+  watchSpeed(){ watchSpeedCycle(); },
+  watchSkip(){ watchSkip(); },
+  backToReport(){ backToReport(); },
+  closeModal(){ closeModal(); },
+  enterTitle(){ const t=$('#titlescreen'); if(t) t.style.display='none'; }
 };
 window.Game=Game;
 
@@ -1141,7 +1388,7 @@ function tick(){
     battleReportModal(reports[reports.length-1]);
   }
   const raidMsg=tickRaid(false);
-  if(raidMsg) raidModal(raidMsg);
+  if(raidMsg && !raidMsg.warn) raidModal(raidMsg);
   if(S.victory && !S.victoryShown){ S.victoryShown=true; victoryModal(); save(); }
   if(++saveCounter>=5){ saveCounter=0; save(); }
   render();
@@ -1151,18 +1398,22 @@ function init(){
   S = loaded || defaultState();
   UI.trainDraft={spearman:10,archer:10,cavalry:10};
   if(!loaded){
+    const d0=dailyLogin();           // Day-1 tribute for a new reign
     save(); render();
     S.seenWelcome=true; save();
     welcomeModal();
+    if(d0) setTimeout(()=>toast('🎁 Daily Tribute (Day 1) claimed: '+esc(d0.desc)), 900);
   } else {
     const info=applyOffline();
     render();
-    if(info.events.length>0) awayModal(info);
+    const d=dailyLogin();
+    if(d) dailyTributeModal(d, info);
+    else if(info.events.length>0) awayModal(info);
   }
   setInterval(tick,1000);
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) save(); });
-  $('#modal-root').addEventListener('click', e=>{ if(e.target.id==='modal-root') closeModal(); });
+  $('#modal-root').addEventListener('click', e=>{ if(e.target.id==='modal-root'){ if(WATCH.active) backToReport(); else closeModal(); } });
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>
