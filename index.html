@@ -38,7 +38,7 @@ body{background:#14100a;font-family:Georgia,'Times New Roman',serif;color:var(--
 #hintbar .pulse{animation:pulse 1.6s infinite;font-size:15px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 /* ---------- views ---------- */
-#views{flex:1;padding:10px 10px 86px;overflow-y:auto}
+#views{flex:1;min-height:0;padding:10px 10px 86px;overflow-y:auto;box-sizing:border-box}
 .view{display:none}
 .view.active{display:block;animation:fadein .25s}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -109,6 +109,7 @@ h2.sec{font-size:16px;letter-spacing:2px;color:var(--red-d);border-bottom:2px so
   font-size:12px;font-family:Arial,sans-serif;padding:8px 10px;margin-bottom:8px}
 /* ---------- world map (canvas) ---------- */
 body.on-map #resbar{display:none} /* map tab has its own slim resource bar */
+body.on-map #app{height:100vh;height:100dvh} /* definite height so the map flex column can't stretch the page */
 #wm-head{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 #wm-kname{flex:1;min-width:0;background:#2c1f0e;border:1px solid var(--bronze);border-radius:8px;
   color:#ffe9c9;font-family:Georgia,serif;font-size:14px;padding:7px 10px}
@@ -116,11 +117,13 @@ body.on-map #resbar{display:none} /* map tab has its own slim resource bar */
 .wm-zbtn{width:38px;height:38px;border-radius:10px;border:2px solid var(--bronze-d);background:#3a2a12;
   color:#ffe9c9;font-size:18px;font-weight:bold;cursor:pointer;flex:none}
 .wm-zbtn:active{background:#5a421e}
-#worldmap{width:100%;height:470px;display:block;border:3px solid var(--bronze-d);border-radius:12px;
-  background:#274a28;touch-action:none;cursor:grab}
+#view-map.active{display:flex;flex-direction:column;height:100%}
+#worldmap{width:100%;flex:1 1 auto;min-height:300px;height:auto;display:block;border:3px solid var(--bronze-d);border-radius:12px;
+  background:#274a28;touch-action:none;cursor:grab;box-sizing:border-box}
 #worldmap:active{cursor:grabbing}
 #wm-feed{margin-top:6px;background:#241a0c;border:1px solid var(--bronze-d);border-radius:10px;
-  padding:7px 10px;font-family:Arial,sans-serif;font-size:11.5px;color:#d8c491;min-height:58px}
+  padding:7px 10px;font-family:Arial,sans-serif;font-size:11.5px;color:#d8c491;min-height:104px}
+#wm-feed .wf-row{line-height:1.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #wm-resbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;background:rgba(20,12,6,.88);
   border:1px solid var(--gold);border-radius:10px;padding:5px 10px;font-family:Arial,sans-serif;
   font-size:11.5px;color:#ffe9c9}
@@ -128,7 +131,8 @@ body.on-map #resbar{display:none} /* map tab has its own slim resource bar */
 #wm-resbar .wm-res b{font-size:11.5px}
 #wm-resbar .wm-ric{width:20px;height:20px}
 #wm-resbar .wm-pow{margin-left:auto;color:#f0d98a;font-weight:bold;white-space:nowrap}
-#wm-resbar .wm-coords{color:#b39a63;white-space:nowrap}
+#wm-resbar .wm-coords{color:#b39a63;white-space:nowrap;border-left:1px solid rgba(201,162,39,.45);
+  padding-left:8px;margin-left:2px}
 #wm-feed .wf-row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
 #wm-feed .wf-row:first-child{color:#ffe9c9}
 #wm-sheet{margin-top:6px;background:#2c1f0e;border:2px solid var(--bronze);border-radius:12px;
@@ -148,9 +152,19 @@ body.on-map #resbar{display:none} /* map tab has its own slim resource bar */
 #modal .flavor{font-style:italic;color:var(--ink-l);font-size:13px;margin-bottom:10px}
 /* ---------- title screen ---------- */
 #titlescreen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:#160d06;overflow:hidden}
-#titlescreen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-#titlescreen .ts-fallback{position:absolute;top:14%;width:100%;text-align:center;font-family:Georgia,serif;
-  font-size:72px;letter-spacing:8px;color:#c9973f;text-shadow:0 3px 0 #5b3a12,0 6px 18px #000}
+#titlescreen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%}
+#titlescreen .ts-scrim{position:absolute;top:0;left:0;right:0;height:40%;z-index:2;display:none;
+  background:linear-gradient(180deg,rgba(12,7,3,.92) 0%,rgba(12,7,3,.55) 45%,rgba(12,7,3,0) 100%)}
+#titlescreen .ts-fallback{position:absolute;top:max(9%,env(safe-area-inset-top));width:100%;text-align:center;font-family:Georgia,serif;
+  font-size:clamp(44px,17vw,84px);letter-spacing:.12em;color:#c9973f;text-shadow:0 3px 0 #5b3a12,0 6px 18px #000;
+  z-index:3;display:none}
+/* portrait phones crop the cover's baked title at the sides: show a crisp HTML title instead,
+   and frame the art on the burning city + horse below it */
+@media (max-aspect-ratio:3/4){
+  #titlescreen .ts-fallback{display:block}
+  #titlescreen .ts-scrim{display:block}
+  #titlescreen img{object-position:center 62%}
+}
 #titlescreen .ts-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,6,2,.88) 0%,rgba(12,6,2,0) 50%)}
 #titlescreen .ts-content{position:absolute;bottom:7%;left:0;right:0;text-align:center}
 #titlescreen .ts-sub{color:#e8d9b8;font-family:Georgia,serif;font-style:italic;font-size:15px;margin-bottom:14px;text-shadow:0 2px 6px #000}
@@ -332,6 +346,7 @@ body[data-skin="warred"] .lvl-pips{color:#a83a3a}
   <div id="titlescreen">
     <div class="ts-fallback">TROY</div>
     <img src="troy-cover.webp" alt="" onerror="this.style.display='none'">
+    <div class="ts-scrim"></div>
     <div class="ts-shade"></div>
     <div class="ts-content">
       <div class="ts-sub">Build your city. Raise your army. Take the throne.</div>
@@ -614,9 +629,7 @@ function genWorld(){
   }
   const feed=[];
   const evk=kingdoms.slice(0,6);
-  const evt=['raided a Lv 6 farm','founded a new outpost','completed the city walls','trained 500 fresh spearmen',
-    'signed a trade pact','sacrificed to Ares before a raid'];
-  for(const k of evk) feed.push({t:Date.now(), txt:'['+k.tag+'] '+k.name+' '+evt[Math.floor(rnd()*evt.length)]});
+  for(const k of evk) feed.push({t:Date.now(), txt:worldEventText(k)});
   // ambient AI armies marching between kingdoms (purely visual; makes the world feel alive)
   const aiMarches=[];
   for(let i=0;i<9 && kingdoms.length>1;i++){
@@ -662,6 +675,29 @@ function pushFeed(txt){
   W.feed.unshift({t:Date.now(), txt:txt});
   if(W.feed.length>14) W.feed.length=14;
 }
+/* Living-world ticker text: varied templates with real numbers, no obvious repeats. */
+let _lastEvtIdx=-1;
+function worldEventText(k){
+  const R=Math.random, ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+  const templates=[
+    ()=>`raided a Lv ${ri(2,9)} farm and seized ${fmtN(ri(8,60)*100)} gold`,
+    ()=>`drilled ${fmtN(ri(1,9)*100)} fresh spearmen at the barracks`,
+    ()=>`hauled ${fmtN(ri(5,40)*100)} stone from the quarries`,
+    ()=>`completed a granary expansion`,
+    ()=>`raised their banner to level ${k.lvl}`,
+    ()=>`cleared a Tier ${ri(2,8)} barbarian camp`,
+    ()=>`scouted an unguarded ruin beyond the hills`,
+    ()=>`founded a new outpost on the frontier`,
+    ()=>`signed a trade pact with a neighboring kingdom`,
+    ()=>`offered sacrifice to Ares before a raid`,
+    ()=>`their hero ${AK_NAMES[ri(0,AK_NAMES.length-1)]} slew a rival champion in single combat`,
+    ()=>`rebuilt ${ri(2,9)} war galleys at the docks`,
+  ];
+  let i=Math.floor(R()*templates.length);
+  if(i===_lastEvtIdx) i=(i+1)%templates.length; // avoid obvious repetition
+  _lastEvtIdx=i;
+  return '['+k.tag+'] '+k.name+' '+templates[i]();
+}
 function tickWorld(){
   ensureWorld();
   const W=S.world; if(!W) return;
@@ -676,22 +712,14 @@ function tickWorld(){
     if(nl>k.lvl){
       k.lvl=nl;
       const n=NODE_BY_ID[k.id]; if(n){ const f=akNodeFor(k); n.garrison=f.garrison; n.loot=f.loot; n.lvl=f.lvl; n.tier=f.tier; n.wallMult=f.wallMult; }
-      pushFeed('['+k.tag+'] '+k.name+' raised their banner to level '+nl);
+      const blv=['raised their banner to level ','fortified their banner to level ','their banner now flies at level '];
+      pushFeed('['+k.tag+'] '+k.name+' '+blv[Math.floor(Math.random()*blv.length)]+nl);
     }
   }
   // ambient events
   if(Math.random()<0.4){
     const k=W.kingdoms[Math.floor(Math.random()*W.kingdoms.length)];
-    if(k){
-      const evts=[
-        'raided a Lv '+(2+Math.floor(Math.random()*8))+' farm',
-        'founded a new outpost on the frontier',
-        'completed a granary expansion',
-        'drilled '+(100+Math.floor(Math.random()*900))+' fresh spearmen',
-        'signed a trade pact with a neighbor',
-        'offered sacrifice before a raid'];
-      pushFeed('['+k.tag+'] '+k.name+' '+evts[Math.floor(Math.random()*evts.length)]);
-    }
+    if(k) pushFeed(worldEventText(k));
   }
   if(Math.random()<0.12 && W.kingdoms.length>1){
     const a=W.kingdoms[Math.floor(Math.random()*W.kingdoms.length)];
@@ -712,40 +740,51 @@ function tickWorld(){
 
 /* ---------------- world-map terrain (pre-rendered once) ---------------- */
 let WM_TERRAIN=null;
-/* Convex hull (monotone chain) for alliance territory blobs. pts: [{x,y}] in terrain px. */
-function convexHull(pts){
-  const p=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
-  if(p.length<4) return p;
-  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
-  const lo=[], hi=[];
-  for(const q of p){ while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],q)<=0) lo.pop(); lo.push(q); }
-  for(let i=p.length-1;i>=0;i--){ const q=p[i]; while(hi.length>=2&&cross(hi[hi.length-2],hi[hi.length-1],q)<=0) hi.pop(); hi.push(q); }
-  lo.pop(); hi.pop(); return lo.concat(hi);
-}
+let WM_GRAIN=null; // small noise tile for a crisp screen-space grain overlay
 function buildTerrain(){
-  const T=1536, c=document.createElement('canvas'); c.width=T; c.height=T;
+  const T=2560, c=document.createElement('canvas'); c.width=T; c.height=T;
   const g=c.getContext('2d'), rnd=mulberry32(WORLD_SEED+7);
   const w2t=T/WORLD;
   // base: teal-green grass (RoK-like)
   g.fillStyle='#2e6b4e'; g.fillRect(0,0,T,T);
-  // large soft tonal blobs
-  const greens=['#357a58','#2a6146','#3d8560','#316b4c','#458a63'];
-  for(let i=0;i<130;i++){
-    g.globalAlpha=0.5; g.fillStyle=greens[Math.floor(rnd()*greens.length)];
-    const r=(40+rnd()*130)*w2t*10;
-    g.beginPath(); g.ellipse(rnd()*T,rnd()*T,r,r*(0.5+rnd()*0.7),rnd()*Math.PI,0,7); g.fill();
+  // soft-edged terrain mottling: many small varied patches (no giant lily pads)
+  // radii are in terrain-canvas px; ~12-48px canvas reads as ~15-45px on a phone
+  function softPatch(x,y,r,col,alpha){
+    const sy=0.55+rnd()*0.6, rot=rnd()*Math.PI;
+    g.save(); g.translate(x,y); g.rotate(rot); g.scale(1,sy);
+    const gr2=g.createRadialGradient(0,0,0,0,0,r);
+    gr2.addColorStop(0,col); gr2.addColorStop(0.72,col); gr2.addColorStop(1,'rgba(46,107,78,0)');
+    g.globalAlpha=alpha; g.fillStyle=gr2;
+    g.beginPath(); g.arc(0,0,r,0,7); g.fill();
+    g.restore();
   }
-  // lighter clearings
-  for(let i=0;i<40;i++){
-    g.globalAlpha=0.30; g.fillStyle='#5a9a72';
-    const r=(30+rnd()*80)*w2t*10;
-    g.beginPath(); g.ellipse(rnd()*T,rnd()*T,r,r*0.7,rnd()*Math.PI,0,7); g.fill();
+  // mid-tone green variation
+  const greens=['#357a58','#2a6146','#3d8560','#316b4c','#458a63','#5f7a48','#4a7a5e','#3f7a66'];
+  for(let i=0;i<380;i++){
+    softPatch(rnd()*T,rnd()*T,12+rnd()*36,greens[Math.floor(rnd()*greens.length)],0.26+rnd()*0.12);
   }
+  // lighter grass clearings
+  const lights=['#5a9a72','#6a8a60','#64a078'];
+  for(let i=0;i<140;i++){
+    softPatch(rnd()*T,rnd()*T,10+rnd()*26,lights[Math.floor(rnd()*lights.length)],0.22+rnd()*0.10);
+  }
+  // darker soil / shadow patches
+  const darks=['#24523c','#1f4a34','#2a5540'];
+  for(let i=0;i<120;i++){
+    softPatch(rnd()*T,rnd()*T,10+rnd()*28,darks[Math.floor(rnd()*darks.length)],0.22+rnd()*0.10);
+  }
+  g.globalAlpha=1;
+  // dry-grass / scrub / sand patches for tonal variety
+  const scrubCols=['#7a8a4a','#8a7a3f','#6b7a3f','#9a8a55','#a08a5a','#7f8a52','#b09a68'];
+  for(let i=0;i<170;i++){
+    softPatch(rnd()*T,rnd()*T,8+rnd()*22,scrubCols[Math.floor(rnd()*scrubCols.length)],0.30+rnd()*0.12);
+  }
+  g.globalAlpha=1;
   // fine noise
-  g.globalAlpha=0.14;
-  for(let i=0;i<5200;i++){
+  g.globalAlpha=0.16;
+  for(let i=0;i<14000;i++){
     g.fillStyle=rnd()<0.5?'#1f4a34':'#6aa884';
-    g.fillRect(rnd()*T,rnd()*T,2+rnd()*4,2+rnd()*4);
+    g.fillRect(rnd()*T,rnd()*T,2+rnd()*3,2+rnd()*3);
   }
   g.globalAlpha=1;
   // soft dark vignette at the world edge (the known world ends here)
@@ -778,65 +817,72 @@ function buildTerrain(){
       g.beginPath(); g.arc(cx+Math.cos(a)*rr2,cy+Math.sin(a)*rr2,1.6+rnd()*1.8,0,7); g.fill();
     }
   }
-  // tree clusters: round teal canopy + short trunk
-  for(let i=0;i<140;i++){
-    const cx=rnd()*T, cy=rnd()*T, ntr=4+Math.floor(rnd()*6);
+  // tree clusters: round canopy with dark outline + light crown highlight, short trunk
+  for(let i=0;i<160;i++){
+    const cx=rnd()*T, cy=rnd()*T, ntr=3+Math.floor(rnd()*4);
     for(let j=0;j<ntr;j++){
-      const x=cx+(rnd()-0.5)*30, y=cy+(rnd()-0.5)*30, r=3.5+rnd()*4.5;
-      g.fillStyle='#4a3423'; g.fillRect(x-1.2,y+r*0.3,2.4,r*0.7); // trunk
+      const x=cx+(rnd()-0.5)*22, y=cy+(rnd()-0.5)*22, r=5+rnd()*6;
+      g.fillStyle='#3d2b1c'; g.fillRect(x-1.4,y+r*0.3,2.8,r*0.8); // trunk
       const cols=['#1f7a5c','#27936e','#1a6449'];
       for(let b=0;b<3;b++){
-        g.fillStyle=cols[(i+j+b)%3]; g.globalAlpha=0.92;
-        g.beginPath(); g.arc(x+(rnd()-0.5)*r*0.9,y+(rnd()-0.5)*r*0.7,r*(0.55+rnd()*0.3),0,7); g.fill();
+        const bx=x+(rnd()-0.5)*r*0.9, by=y+(rnd()-0.5)*r*0.7, br=r*(0.55+rnd()*0.3);
+        g.globalAlpha=0.95;
+        g.fillStyle=cols[(i+j+b)%3];
+        g.beginPath(); g.arc(bx,by,br,0,7); g.fill();
+        g.globalAlpha=1;
+        g.strokeStyle='#123f2c'; g.lineWidth=1.4; // dark outline reads as designed foliage
+        g.beginPath(); g.arc(bx,by,br,0,7); g.stroke();
+        g.fillStyle='rgba(190,240,205,0.5)'; // sunlit crown highlight
+        g.beginPath(); g.arc(bx-br*0.28,by-br*0.34,br*0.34,0,7); g.fill();
       }
-      g.globalAlpha=1;
     }
   }
-  // gray rock clusters
-  for(let i=0;i<140;i++){
+  g.globalAlpha=1;
+  // gray rock clusters with dark base outline + pale top facet
+  for(let i=0;i<150;i++){
     const x=rnd()*T, y=rnd()*T, nr=2+Math.floor(rnd()*3);
     for(let j=0;j<nr;j++){
-      const rx=x+(rnd()-0.5)*14, ry=y+(rnd()-0.5)*10, rs=2.5+rnd()*4;
+      const rx=x+(rnd()-0.5)*16, ry=y+(rnd()-0.5)*12, rs=3+rnd()*4.5;
+      g.fillStyle='#4c4f52';
+      g.beginPath();
+      g.moveTo(rx-rs*1.1,ry+rs*0.7); g.lineTo(rx-rs*0.3,ry-rs*0.9);
+      g.lineTo(rx+rs*0.8,ry-rs*0.45); g.lineTo(rx+rs*1.1,ry+rs*0.7);
+      g.closePath(); g.fill();
       g.fillStyle=['#8a8d90','#6f7276','#a3a6a9'][Math.floor(rnd()*3)];
       g.beginPath();
       g.moveTo(rx-rs,ry+rs*0.6); g.lineTo(rx-rs*0.3,ry-rs*0.8);
       g.lineTo(rx+rs*0.7,ry-rs*0.4); g.lineTo(rx+rs,ry+rs*0.6);
       g.closePath(); g.fill();
-      g.fillStyle='rgba(255,255,255,0.25)';
+      g.fillStyle='rgba(255,255,255,0.32)';
       g.beginPath(); g.moveTo(rx-rs*0.3,ry-rs*0.8); g.lineTo(rx+rs*0.1,ry-rs*0.5); g.lineTo(rx-rs*0.1,ry-rs*0.2); g.closePath(); g.fill();
-    }
-  }
-  // glowing alliance territory: soft boundary looping each alliance's cluster
-  const W0=S&&S.world;
-  if(W0){
-    for(const tag of AK_TAGS){
-      const pts=W0.kingdoms.filter(k=>k.tag===tag).map(k=>({x:k.wx*w2t,y:k.wy*w2t}));
-      if(pts.length<4) continue;
-      const hull=convexHull(pts);
-      // pad the hull outward a little so the glow clears the cities
-      const cx=hull.reduce((a,p)=>a+p.x,0)/hull.length, cy=hull.reduce((a,p)=>a+p.y,0)/hull.length;
-      const hp=hull.map(p=>{ const dx=p.x-cx, dy=p.y-cy, d=Math.hypot(dx,dy)||1, pad=26*w2t*10;
-        return {x:p.x+dx/d*pad, y:p.y+dy/d*pad}; });
-      const col=TAG_COLORS[tag]||'#f0d98a';
-      g.fillStyle=col+'0d'; // ~5% tint wash inside the territory
-      g.beginPath(); hp.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.closePath(); g.fill();
-      const bands=[[16,'2e'],[8,'55'],[3,'99']];
-      for(const [lw,al] of bands){
-        g.strokeStyle=col+al; g.lineWidth=lw; g.lineJoin='round';
-        g.beginPath(); hp.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.closePath(); g.stroke();
-      }
     }
   }
   // stamp grass clearings under every entity so nothing sits on water
   function clearing(wx,wy,r){
     const x=wx*w2t, y=wy*w2t, rr2=r*w2t;
+    g.globalAlpha=0.5;
     g.fillStyle='#3d8560';
+    g.beginPath(); g.ellipse(x,y,rr2*1.25,rr2,0,0,7); g.fill();
+    g.globalAlpha=0.55;
     g.beginPath(); g.ellipse(x,y,rr2,rr2*0.8,0,0,7); g.fill();
+    g.globalAlpha=1;
   }
   clearing(WORLD_CX,WORLD_CY,300);
   const W=S&&S.world;
   if(W){ for(const k of W.kingdoms) clearing(k.wx,k.wy,210); }
   for(const n of NODES){ if(n.wx!==undefined) clearing(n.wx,n.wy,n.kind==='gather'?120:150); }
+  // fine grain tile for a crisp screen-space overlay (built once)
+  if(!WM_GRAIN){
+    const gt=document.createElement('canvas'); gt.width=gt.height=128;
+    const gg=gt.getContext('2d'), gr=mulberry32(1234567);
+    const id=gg.createImageData(128,128);
+    for(let i=0;i<id.data.length;i+=4){
+      const v=gr()<0.5?0:255;
+      id.data[i]=v; id.data[i+1]=v; id.data[i+2]=v; id.data[i+3]=Math.floor(gr()*26);
+    }
+    gg.putImageData(id,0,0);
+    WM_GRAIN=gt;
+  }
   WM_TERRAIN=c;
 }
 
@@ -1073,8 +1119,8 @@ function renderMap(){
   if(!$('#worldmap')){
     root.innerHTML=
       '<div id="wm-head"><input id="wm-kname" maxlength="24" value="'+esc(S.kingdomName||'Troy')+'" placeholder="Kingdom name" onchange="Game.wmSaveName()">'+
-      '<div id="wm-zoomrow"><button class="wm-zbtn" onclick="Game.wmZoom(1.35)">+</button>'+
-      '<button class="wm-zbtn" onclick="Game.wmZoom(0.74)">−</button>'+
+      '<div id="wm-zoomrow"><button class="wm-zbtn" onclick="Game.wmZoom(1.5)">+</button>'+
+      '<button class="wm-zbtn" onclick="Game.wmZoom(0.667)">−</button>'+
       '<button class="wm-zbtn" style="font-size:14px" onclick="Game.wmCenter()" title="Center on Troy">⌂</button></div></div>'+
       '<div id="wm-resbar">'+
       '<span class="wm-res"><canvas class="wm-ric" data-res="food" width="20" height="20"></canvas><b id="wm-r-food"></b></span>'+
@@ -1105,7 +1151,7 @@ function initWorldMap(){
   });
   window.addEventListener('resize', sizeWorldCanvas);
   cv.addEventListener('pointerdown', e=>{
-    cv.setPointerCapture(e.pointerId);
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){/* synthetic/no-pointer edge */}
     WMAP.pointers[e.pointerId]={x:e.clientX,y:e.clientY};
     WMAP.downAt=Date.now(); WMAP.downXY={x:e.clientX,y:e.clientY}; WMAP.moved=false;
     const ks=Object.keys(WMAP.pointers);
@@ -1231,6 +1277,9 @@ function drawWorld(){
   const m=WMAP, cv=m.canvas, c=m.ctx, now=nowMs();
   m.t++;
   const dpr=Math.min(2,window.devicePixelRatio||1);
+  // keep the backing store in sync with the CSS size (flex layout can resize it)
+  const br=cv.getBoundingClientRect();
+  if(Math.abs(cv.width-br.width*dpr)>4||Math.abs(cv.height-br.height*dpr)>4) sizeWorldCanvas();
   const W=cv.width/dpr, H=cv.height/dpr;
   c.setTransform(dpr,0,0,dpr,0,0);
   c.clearRect(0,0,W,H);
@@ -1243,6 +1292,13 @@ function drawWorld(){
     (Math.min(WORLD,vx1)-Math.max(0,vx0))*w2t, (Math.min(WORLD,vy1)-Math.max(0,vy0))*w2t,
     (Math.max(0,vx0)-vx0)*m.cam.z, (Math.max(0,vy0)-vy0)*m.cam.z,
     (Math.min(WORLD,vx1)-Math.max(0,vx0))*m.cam.z, (Math.min(WORLD,vy1)-Math.max(0,vy0))*m.cam.z);
+  // crisp screen-space grain over the terrain (kills the blurry-gradient look)
+  if(WM_GRAIN){
+    c.save(); c.globalAlpha=0.5;
+    c.fillStyle=c.createPattern(WM_GRAIN,'repeat');
+    c.fillRect(0,0,W,H);
+    c.restore();
+  }
   m.drawn=[];
   const vis=(wx,wy,pad)=> wx>vx0-pad&&wx<vx1+pad&&wy>vy0-pad&&wy<vy1+pad;
   const z=m.cam.z, lbl=z>0.16;
@@ -1262,8 +1318,12 @@ function drawWorld(){
     c.globalAlpha=1;
     if(lbl){
       const ty=p.y-s*2.1;
-      drawPlaque(c,p.x,ty,n.name,{fs:Math.max(9,Math.min(12,10*z+3))});
-      if(n.tier) drawLevelBadge(c,p.x+s*1.2,p.y-s*1.4,n.tier,Math.max(7,Math.min(11,8*z+2)));
+      const nfs=Math.max(9,Math.min(12,10*z+3));
+      const nplq=drawPlaque(c,p.x,ty,n.name,{fs:nfs});
+      if(n.tier){
+        const bw2=Math.max(7,Math.min(11,8*z+2)); // badge hangs below the plaque with a real gap
+        drawLevelBadge(c,p.x,ty+nplq.h/2+bw2*1.12+6,n.tier,bw2);
+      }
     }
     m.drawn.push({id:n.id,sx:p.x,sy:p.y});
   }
@@ -1306,7 +1366,8 @@ function drawWorld(){
         c.quadraticCurveTo(p.x+4,p.y-s*2.4+((m.t*2)%10),p.x-3,p.y-s*3); c.stroke();
       }
       const plq=drawPlaque(c,p.x,p.y+s*2.15,'['+k.tag+'] '+k.name,{fs:kfs,color:TAG_COLORS[k.tag]||'#f0d98a',clampW:W});
-      drawLevelBadge(c,p.x,p.y+s*2.15+plq.h/2+8,k.lvl,Math.max(7,kfs*0.9));
+      const bw=Math.max(7,kfs*0.9); // clear gap: badge top starts below the plaque bottom
+      drawLevelBadge(c,p.x,p.y+s*2.15+plq.h/2+bw*1.12+7,k.lvl,bw);
     }
     m.drawn.push({id:k.id,sx:p.x,sy:p.y});
   }
@@ -1359,12 +1420,14 @@ function drawWorld(){
 }
 function updateWorldFeed(){
   const el=$('#wm-feed'); if(!el||!S.world) return;
-  el.innerHTML=S.world.feed.slice(0,4).map(f=>'<div class="wf-row">'+esc(f.txt)+'</div>').join('')||
+  el.innerHTML=S.world.feed.slice(0,5).map(f=>'<div class="wf-row">'+esc(f.txt)+'</div>').join('')||
     '<div class="wf-row">The world stirs…</div>';
   const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v; };
   set('#wm-r-food', fmtN(S.res.food)); set('#wm-r-wood', fmtN(S.res.wood));
   set('#wm-r-stone', fmtN(S.res.stone)); set('#wm-r-gold', fmtN(S.res.gold));
-  set('#wm-pow', 'Power '+fmtN(armyPower()));
+  const pw=armyPower();
+  const pe=$('#wm-pow');
+  if(pe){ if(pw>0){ pe.style.display=''; set('#wm-pow','Power '+fmtN(pw)); } else pe.style.display='none'; }
 }
 /* Bottom-sheet panel for the tapped entity. Buttons wire to existing
    Game functions: openComposer (march/gather), sendScout (25 gold). */
@@ -1414,6 +1477,8 @@ function selectWorldEntity(id){
       '<div class="wm-actions">'+btns+'<button class="btn ghost small" onclick="Game.wmCloseSheet()">Close</button></div>';
   }
   el.innerHTML=html; el.classList.add('open');
+  // keep the freshly opened sheet fully visible above the fixed tab bar
+  requestAnimationFrame(()=>{ const v=$('#views'); if(v) v.scrollTop=v.scrollHeight; });
   drawWorld();
 }
 const GATHER_TIME = 45;        // seconds spent gathering on site
